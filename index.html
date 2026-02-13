@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Regenerative AI CreationTool v0.6.1 (Single-file)</title>
+  <title>Regenerative AI CreationTool v0.6.2 (Single-file)</title>
   <style>
     :root{
       --bg:#f6f7f9; --card:#fff; --text:#111; --muted:#667085;
@@ -16,23 +16,20 @@
     *{box-sizing:border-box}
     body{ margin:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--text); -webkit-text-size-adjust:100%;}
     code{font-family:var(--mono); font-size:.95em}
-    .app{ max-width: 980px; margin:0 auto; padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 88px); }
+    .app{ max-width: 980px; margin:0 auto; padding: calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 96px); }
+
     header{
       position: sticky; top:0; z-index:20;
       background: color-mix(in oklab, var(--bg) 88%, #fff 12%);
       backdrop-filter: blur(6px);
       border-bottom: 1px solid var(--border);
-      padding: 10px 12px; margin: -12px -12px 12px;
+      padding: 10px 12px;
+      margin: -10px -12px 12px;
     }
     .headrow{display:flex; align-items:center; gap:10px;}
     .titlewrap{flex:1; min-width:0}
     h1{ font-size: 18px; margin:0; line-height:1.15; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
     .subtitle{ margin:4px 0 0; font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-    .iconbtn{
-      height: var(--tap); min-width: var(--tap); padding: 0 12px;
-      border:1px solid var(--border2); background:#fff; border-radius: 999px;
-      font-weight:800; cursor:pointer;
-    }
 
     /* Toasts */
     .toastHost{
@@ -93,6 +90,7 @@
     .btn.primary{ background: var(--accent); border-color: var(--accent); color:#fff; }
     .btn.ghost{ background: #f7f7f7; }
     .btn.danger{ border-color: color-mix(in oklab, var(--err) 35%, var(--border2)); background: color-mix(in oklab, var(--err) 10%, #fff); color: var(--err); }
+    .btn.small{ height: 38px; border-radius: 10px; font-weight:800; }
 
     /* Cards */
     details.card{
@@ -120,7 +118,7 @@
       font-size:12px;
       color:var(--muted);
       font-weight:700;
-      max-width: 48%;
+      max-width: 58%;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
@@ -145,22 +143,16 @@
     .help-inline{ margin-top:6px; font-size: 12px; color: var(--muted); line-height:1.35; }
     .opt-desc{ font-size:12px; color: var(--muted); margin-top: 6px; line-height:1.35; }
     .suggest{ font-size:12px; color: #101828; background:#f2f4f7; border:1px dashed var(--border2); border-radius: 12px; padding: 10px 12px; line-height:1.35; margin-top:8px; }
-    .btns{ display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0; }
 
-    /* Code output */
+    /* Output */
     .codewrap{ border-radius: 14px; overflow:hidden; border:1px solid #111; background:#0b0b0b; }
-    pre{ margin:0; padding: 12px; overflow:auto; max-height: 42vh; color:#eaeaea; font-family: var(--mono); font-size: 12px; line-height:1.35; white-space: pre; }
+    pre{ margin:0; padding: 12px; overflow:auto; max-height: 46vh; color:#eaeaea; font-family: var(--mono); font-size: 12px; line-height:1.35; white-space: pre; }
+    .outActions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
 
     /* Toggle */
     .toggleRow{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding: 10px 12px;
-      border: 1px solid var(--border2);
-      border-radius: 12px;
-      background:#fff;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding: 10px 12px; border: 1px solid var(--border2); border-radius: 12px; background:#fff;
     }
     .toggleRow b{font-size:13px}
     .switch{
@@ -183,7 +175,7 @@
     .switch.on{ background: #111; border-color:#111; }
     .switch.on .knob{ transform: translateX(22px); border-color:#111; }
 
-    /* Field groups (categories) */
+    /* Category groups */
     details.group{
       border: 1px solid var(--border);
       border-radius: 14px;
@@ -205,7 +197,22 @@
     .groupTitle{font-weight:900}
     .groupMeta{margin-left:auto; font-size:12px; color:var(--muted); font-weight:800}
 
-    /* Sticky bottom action bar (mobile + desktop) */
+    /* Field rows + per-field details (one open value at a time) */
+    .fieldRow{
+      border:1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 10px;
+      margin: 10px 0;
+      background:#fff;
+    }
+    .fieldTop{ display:flex; align-items:center; gap:10px; }
+    .fieldTop .lab{ font-weight:900; font-size:12px; color:#222; flex:1; min-width:0; }
+    .fieldTop .path{ font-family: var(--mono); font-size:11px; color: var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 45%; text-align:right;}
+    .fieldMoreBtn{ height: 34px; padding: 0 10px; border-radius: 10px; border:1px solid var(--border2); background:#fff; font-weight:900; cursor:pointer; }
+    .fieldMore{ margin-top:10px; display:none; }
+    .fieldMore.open{ display:block; }
+
+    /* Sticky bottom action bar (navbar) */
     .actionbar{
       position: fixed;
       left: 50%;
@@ -217,6 +224,7 @@
       border-radius: 999px;
       box-shadow: var(--shadow);
       padding: 8px;
+      padding-bottom: calc(8px + env(safe-area-inset-bottom)); /* navbar bottom padding fix */
       display:flex;
       gap:8px;
       z-index: 40;
@@ -232,13 +240,13 @@
       cursor:pointer;
     }
     .actionbar .pill.primary{ background:#111; border-color:#111; color:#fff; }
-    .actionbar .pill.small{ flex: 0 0 auto; width: 90px; }
+    .actionbar .pill.small{ flex: 0 0 auto; width: 112px; }
 
     @media (min-width: 860px){
       .row.grid2{ grid-template-columns: 280px 1fr; align-items:center; }
       h1{font-size:20px}
-      pre{max-height: 46vh}
-      .actionbar{ padding: 10px; }
+      pre{max-height: 52vh}
+      .actionbar{ padding: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
     }
   </style>
 </head>
@@ -248,10 +256,9 @@
 
   <header>
     <div class="headrow">
-      <button class="iconbtn" id="menuBtn">☰ Menu</button>
       <div class="titlewrap">
-        <h1>Regenerative AI CreationTool v0.6.1 (Offline)</h1>
-        <div class="subtitle">Mobile-first cards • templates/presets • assembler • bundle portability • works from local files (no modules)</div>
+        <h1>Regenerative AI CreationTool v0.6.2 (Offline)</h1>
+        <div class="subtitle" id="subtitleLine">v0.6.2 • Offline • Brave/Firefox compatible</div>
       </div>
     </div>
   </header>
@@ -260,11 +267,11 @@
   <aside class="drawer" id="drawer">
     <div style="display:flex;align-items:center;gap:10px">
       <h2 style="flex:1">Actions</h2>
-      <button class="iconbtn" id="closeDrawer">✕</button>
+      <button class="btn small" id="closeDrawer">Close</button>
     </div>
 
     <div class="small">
-      Portable storage = bundle import/export. User presets are stored locally and included in exported bundles.
+      Bundles include your current state + user presets. JSON import/export is for the generated output.
     </div>
 
     <div class="hr"></div>
@@ -276,16 +283,19 @@
       <button class="btn" id="importJSONBtn">Import JSON</button>
     </div>
 
+    <div class="hr"></div>
+
     <div class="btnrow">
-      <button class="btn" id="copyJSONBtn">Copy Output</button>
+      <button class="btn" id="savePresetBtn">Save Preset As…</button>
       <button class="btn danger" id="resetAllBtn">Reset ALL to Defaults</button>
       <button class="btn danger" id="resetEditsBtn">Reset edits</button>
       <button class="btn danger" id="resetBaseBtn">Reset to template base</button>
     </div>
 
     <div class="hr"></div>
+
     <div class="small">
-      Clipboard note: some Android contexts block modern clipboard APIs. v0.6.1 uses a fallback copy method to work from local files.
+      Clipboard: v0.6.2 uses a fallback copy method for offline Android local-file contexts.
     </div>
 
     <input id="fileInput" type="file" accept="application/json" style="display:none" />
@@ -297,20 +307,17 @@
     <details class="card" id="card0">
       <summary>
         <span class="sumLeft">Step 0 — Prompt Generator</span>
-        <span class="sumRight">Image → JSON extractor prompt</span>
+        <span class="sumRight">Generate extractor prompt</span>
       </summary>
       <div class="section">
         <div class="row grid2">
           <label>Image Type</label>
           <select id="imageTypeSelect"></select>
         </div>
-
-        <div class="btns">
+        <div class="outActions">
           <button class="btn primary" id="genPrompt">Generate</button>
-          <button class="btn ghost" id="resetPrompt">Reset</button>
-          <button class="btn" id="copyPromptBtn">Copy Prompt</button>
+          <button class="btn ghost" id="resetPrompt">Clear</button>
         </div>
-
         <div class="codewrap">
           <pre><code id="promptOut"></code></pre>
         </div>
@@ -318,11 +325,11 @@
       </div>
     </details>
 
-    <!-- STEP 1 (must be open by default) -->
+    <!-- STEP 1 (default open) -->
     <details class="card" id="card1" open>
       <summary>
         <span class="sumLeft">Step 1 — Preset Driven</span>
-        <span class="sumRight" id="step1Hint">Template + preset + output</span>
+        <span class="sumRight" id="step1Hint">Select template + preset</span>
       </summary>
       <div class="section">
 
@@ -338,7 +345,7 @@
           <label>Preset</label>
           <div>
             <select id="presetSelect"></select>
-            <div class="help-inline">Built-ins apply stable “blueprint” defaults. User presets store only your overrides.</div>
+            <div class="help-inline">Built-ins apply stable defaults. User presets store only your overrides.</div>
           </div>
         </div>
 
@@ -346,7 +353,7 @@
           <div class="toggleRow">
             <div>
               <b>Include master_prompt</b>
-              <div class="help-inline">When ON: assembler generates <code>prompt_output.master_prompt</code>. When OFF: it is omitted (cleaner JSON).</div>
+              <div class="help-inline">ON: include <code>prompt_output.master_prompt</code>. OFF: omit it (cleaner JSON).</div>
             </div>
             <div class="switch" id="masterSwitch" role="switch" aria-checked="false"><div class="knob"></div></div>
           </div>
@@ -355,25 +362,19 @@
         <div class="row grid2">
           <label>Output mode</label>
           <select id="outputMode">
+            <option value="exec_json">Executable JSON</option>
             <option value="full_json">Full JSON</option>
             <option value="prompt_only">Prompt Only</option>
             <option value="prompt_and_json">Prompt & JSON</option>
-            <option value="exec_json">Executable JSON</option>
             <option value="debug">Debug</option>
           </select>
         </div>
 
-        <div class="btns">
+        <div class="outActions">
           <button class="btn primary" id="applyTemplateBtn">Apply Template</button>
-          <button class="btn primary" id="applyPresetBtn">Apply Preset</button>
-          <button class="btn ghost" id="generateBtn">Generate Output</button>
-          <button class="btn" id="copyBtn">Copy</button>
-          <button class="btn" id="expandBtn">Expand Output</button>
+          <button class="btn primary" id="applyPresetBtn">Apply Preset (auto-generate)</button>
         </div>
 
-        <div class="codewrap">
-          <pre><code id="out1">{}</code></pre>
-        </div>
         <div class="help-inline" id="status1"></div>
       </div>
     </details>
@@ -382,22 +383,16 @@
     <details class="card" id="card2">
       <summary>
         <span class="sumLeft">Step 2 — Common Fields</span>
-        <span class="sumRight">Fast edits</span>
+        <span class="sumRight">Quick edits</span>
       </summary>
       <div class="section">
-        <div class="help-inline">Quick edits. Values are grouped into categories; categories are collapsed by default.</div>
+        <div class="help-inline">Quick edits. Categories are accordion (one open at a time).</div>
         <div id="commonFields"></div>
 
-        <div class="btns">
+        <div class="outActions">
           <button class="btn primary" id="unlockExpertBtn">Unlock Expert Mode</button>
-          <button class="btn ghost" id="gen2">Generate Output</button>
-          <button class="btn" id="copy2">Copy</button>
-          <button class="btn" id="savePresetBtn">Save Preset As…</button>
         </div>
 
-        <div class="codewrap">
-          <pre><code id="out2">{}</code></pre>
-        </div>
         <div class="help-inline" id="status2"></div>
       </div>
     </details>
@@ -409,18 +404,22 @@
         <span class="sumRight" id="expertHint">Locked</span>
       </summary>
       <div class="section" id="expertBody">
-        <div class="help-inline">All schema fields grouped into logical categories (collapsed by default).</div>
+        <div class="help-inline">All schema fields (excluding “Common Fields” to avoid duplicates). Use search + jump.</div>
+
+        <div class="row grid2">
+          <label>Search + Jump</label>
+          <div>
+            <input id="fieldSearch" placeholder="Type to filter fields (label/path)..." />
+            <div class="help-inline">Press Enter to jump to first match. Use this for fast navigation.</div>
+          </div>
+        </div>
+
         <div id="expertFields"></div>
 
-        <div class="btns">
+        <div class="outActions">
           <button class="btn primary" id="unlockGodBtn">Unlock God Mode</button>
-          <button class="btn ghost" id="gen3">Generate Output</button>
-          <button class="btn" id="copy3">Copy</button>
         </div>
 
-        <div class="codewrap">
-          <pre><code id="out3">{}</code></pre>
-        </div>
         <div class="help-inline" id="status3"></div>
       </div>
     </details>
@@ -432,77 +431,100 @@
         <span class="sumRight">Superset controls</span>
       </summary>
       <div class="section">
-        <div class="help-inline">
-          God Mode unlocks high-granularity Ultra Elite controls. Categories remain collapsed by default for scanability.
-        </div>
+        <div class="help-inline">Ultra Elite deep controls. Categories accordion; values accordion.</div>
         <div id="godFields"></div>
-
-        <div class="btns">
-          <button class="btn ghost" id="gen4">Generate Output</button>
-          <button class="btn" id="copy4">Copy</button>
-        </div>
-
-        <div class="codewrap">
-          <pre><code id="out4">{}</code></pre>
-        </div>
         <div class="help-inline" id="status4"></div>
       </div>
     </details>
 
-    <div class="help-inline">
-      Offline single-file app. Open locally. User presets persist in your browser storage and exported bundles.
-    </div>
+    <!-- Output (single global) -->
+    <details class="card" id="cardOut">
+      <summary>
+        <span class="sumLeft">Output</span>
+        <span class="sumRight" id="outHint">Generated result</span>
+      </summary>
+      <div class="section">
+        <div class="codewrap">
+          <pre><code id="outMain">{}</code></pre>
+        </div>
+        <div class="outActions">
+          <button class="btn" id="expandBtn">Expand</button>
+        </div>
+        <div class="help-inline" id="statusOut"></div>
+      </div>
+    </details>
+
   </main>
 
-  <!-- Sticky action bar -->
+  <!-- Sticky bottom navbar -->
   <div class="actionbar" role="toolbar" aria-label="Quick actions">
     <button class="pill primary" id="barGenerate">Generate</button>
     <button class="pill" id="barCopy">Copy</button>
-    <button class="pill small" id="barMenu">Menu</button>
+    <button class="pill small" id="barActions">Actions</button>
   </div>
 
   <script>
     /* =========================================================
-      v0.6.1 Single-file (no modules) — Mobile-first card UI
-      Additions:
-      - Top-center Toasts (success/error, 1.5s) on key actions
-      - Clipboard fallback (execCommand) for offline Android
-      - Field registry: defaults + descriptions + recommendations + category grouping + ordering
-      - Reset ALL to Defaults (clean slate, collapse all steps, keep saved presets)
-      - Output mode: Executable JSON
+      v0.6.2 Single-file — UX policies implemented:
+      - One open Step at a time (accordion)
+      - One open Category at a time (accordion)
+      - One open Value details at a time (accordion)
+      - Toast duration = 2.5s (success+error)
+      - Output mode default = Executable JSON
+      - Apply Preset auto-generates output + toast
+      - Remove redundant hamburger (Actions via navbar)
+      - Remove excess footer/hero text
+      - Step 2/3 duplicate fields resolved: Step 3 excludes COMMON_FIELDS; Step 2 is the edit surface for those.
+      - Step 3 includes search + jump
     ========================================================= */
 
-    /* ---------------- Version / storage keys ---------------- */
-    const APP_VERSION = "v0.6.1-singlefile";
-    const LS_KEY = "regenerative_ai_creationtool_user_presets_v061";
-    const LS_STATE = "regenerative_ai_creationtool_state_v061";
+    const APP_VERSION = "v0.6.2-singlefile";
+    const LS_KEY = "regenerative_ai_creationtool_user_presets_v062";
+    const LS_STATE = "regenerative_ai_creationtool_state_v062";
 
-    /* ---------------- Toasts ---------------- */
-    const toastHost = document.getElementById("toastHost");
+    /* ---------- DOM helpers ---------- */
+    const $ = (id)=>document.getElementById(id);
+    const deepClone = (o)=>JSON.parse(JSON.stringify(o));
+    const escapeHtml = (s)=>String(s).replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+
+    /* ---------- Toasts (2.5s) ---------- */
+    const toastHost = $("toastHost");
     function toast(message, kind="ok", tag=""){
       const el = document.createElement("div");
       el.className = "toast" + (kind === "err" ? " err" : "");
       el.innerHTML = `<span class="dot"></span><span class="msg"></span>${tag ? `<span class="tag">${escapeHtml(tag)}</span>` : ""}`;
       el.querySelector(".msg").textContent = message;
-
       toastHost.appendChild(el);
       requestAnimationFrame(()=> el.classList.add("show"));
       setTimeout(()=>{
         el.classList.remove("show");
         setTimeout(()=> el.remove(), 150);
-      }, 1500);
+      }, 2500);
     }
-    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
 
-    /* ---------------- Drawer ---------------- */
+    /* ---------- Drawer ---------- */
     function openDrawer(){ $("drawer").classList.add("open"); $("drawerBackdrop").classList.add("open"); }
     function closeDrawer(){ $("drawer").classList.remove("open"); $("drawerBackdrop").classList.remove("open"); }
-    $("menuBtn").onclick=openDrawer;
+    $("barActions").onclick=openDrawer;
     $("closeDrawer").onclick=closeDrawer;
     $("drawerBackdrop").onclick=closeDrawer;
-    $("barMenu").onclick=openDrawer;
 
-    /* ---------------- Step 0 prompts (PDF-derived functionality: 10-type generator) ---------------- */
+    /* ---------- Step accordion (only one open step) ---------- */
+    const STEP_IDS = ["card0","card1","card2","card3","card4","cardOut"];
+    function setupStepAccordion(){
+      STEP_IDS.forEach(id=>{
+        const det = $(id);
+        if (!det) return;
+        det.addEventListener("toggle", ()=>{
+          if (!det.open) return;
+          STEP_IDS.forEach(otherId=>{
+            if (otherId !== id && $(otherId)) $(otherId).open = false;
+          });
+        });
+      });
+    }
+
+    /* ---------- Prompt generator (Step 0) ---------- */
     const IMAGE_ANALYSIS_PROMPTS = {
       "Portrait Photography": `You will receive an image.\nAnalyze it and convert EVERYTHING visible into a complete Ultra Elite JSON structure.\nRules:\n- Use Ultra Elite template structure\n- Preserve identity exactly\n- Extract facial structure, skin micro detail, lighting physics, camera properties\n- Capture environment, clothing, accessories, pose, mood\n- Fill every field possible\n- Unknown fields: infer realistically\nOutput ONLY JSON.\nIf image not provided ask for image.`,
       "Full Body Fashion": `Analyze uploaded fashion image.\nExtract garments, fabric physics, body proportions, pose, materials, studio lighting.\nReturn Ultra Elite JSON.\nOutput only JSON.\nIf no image, request image.`,
@@ -516,274 +538,275 @@
       "Realistic Illustration": `Analyze realistic illustration.\nExtract rendering technique, texture, lighting.\nReturn Ultra Elite JSON.\nOutput only JSON.`
     };
 
-    /* ---------------- Templates (significant usable defaults everywhere) ---------------- */
-    const TEMPLATE_BASES = {
-      "ChatGPT Optimized": {
-        meta: { schema_version: APP_VERSION, engine_target: "chatgpt", template_type: "chatgpt_optimized" },
-        prompt_profile: {
-          mode: "photoreal",
-          priority: ["composition","subject","clothing","accessories","lighting","background","style","camera","constraints"],
-          output_goal: "single photoreal image with clean detail, consistent anatomy, no text/logos/watermarks"
-        },
-        output_specs: { num_subjects: 1, aspect_ratio: "4:5", resolution_hint: "high" },
-        composition: {
-          shot_type: "editorial portrait",
-          body_visibility: "waist-up",
-          framing: "waist-up portrait, include hands if possible, clean crop",
-          orientation: "vertical",
-          subject_position: "center",
-          camera_height: "eye level",
-          camera_distance: "medium",
-          perspective: "neutral",
-          background_blur_intent: "moderate"
-        },
-        identity: {
-          identity_strength: "medium",
-          distinctive_features: "consistent facial proportions, consistent eye shape, consistent jawline",
-          variation_seed: "seed-1001",
-          do_not_change: ["face shape","eye shape","jawline","hair color"]
-        },
-        subject: {
-          gender: "female",
-          age: "young adult",
-          ethnicity: "unspecified",
-          skin: { tone: "light", undertone: "neutral", texture: "natural skin texture", details: "visible pores, subtle imperfections" },
-          face: { shape: "oval", features: "defined cheekbones, straight nose, balanced proportions" },
-          eyes: { color: "brown", makeup: "natural soft makeup" },
-          hair: { color: "dark brown", style: "loose waves", details: "realistic strand detail" }
-        },
-        clothing: {
-          top: "black turtleneck",
-          bottom: "high-waisted jeans",
-          outerwear: "none",
-          dress: "none",
-          footwear: "none",
-          materials: ["cotton","denim"],
-          fit: "tailored",
-          style: "smart casual",
-          notes: "wrinkle-natural, realistic fabric texture"
-        },
-        accessories: { items: ["none"], details: "no jewelry" },
-        lighting: { type: "studio softbox", direction: "front", quality: "soft", tone: "neutral", notes: "gentle shadows, flattering key light" },
-        background: { location_type: "studio", scene: "minimal seamless backdrop", clutter: "minimal", complexity: "low", palette: "neutral" },
-        style: { genre: "fashion", strength: "medium", realism_strength: "high", color_grading: "neutral", contrast: "medium", sharpness: "high" },
-        camera: { photo_style: "editorial portrait", focal_length: "85mm", depth_of_field: "shallow", exposure: "balanced", grain: "subtle" },
-        mood: "calm, confident",
-        constraints: {
-          must_include: ["no text","no logos","no watermarks","accurate hands","natural skin texture"],
-          avoid: ["extra fingers","warped hands","deformed anatomy","blurred face","plastic skin","over-smoothed skin","AI artifacts"]
-        },
-        prompt_output: { user_prefix: "", negative_prompt: "" }
-      },
-
-      "Single Image": {
-        meta: { schema_version: APP_VERSION, engine_target: "chatgpt", template_type: "single_image" },
-        prompt_profile: {
-          mode: "photoreal",
-          priority: ["composition","subject","clothing","lighting","background","camera","style","constraints"],
-          output_goal: "one-off image optimized for impact; clean composition; no text/logos/watermarks"
-        },
-        output_specs: { num_subjects: 1, aspect_ratio: "9:16", resolution_hint: "high" },
-        composition: {
-          shot_type: "full-body lifestyle",
-          body_visibility: "full body",
-          framing: "head-to-toe visible, include shoes, include hands",
-          orientation: "vertical",
-          subject_position: "center",
-          camera_height: "eye level",
-          camera_distance: "far",
-          perspective: "neutral",
-          background_blur_intent: "light"
-        },
-        identity: {
-          identity_strength: "low",
-          distinctive_features: "pleasant natural face, realistic proportions",
-          variation_seed: "seed-2001",
-          do_not_change: []
-        },
-        subject: {
-          gender: "female",
-          age: "young adult",
-          ethnicity: "unspecified",
-          skin: { tone: "medium", undertone: "neutral", texture: "natural", details: "subtle pores, realistic specular highlights" },
-          face: { shape: "oval", features: "balanced proportions" },
-          eyes: { color: "brown", makeup: "light natural makeup" },
-          hair: { color: "dark brown", style: "straight", details: "realistic strands" }
-        },
-        clothing: { top: "white t-shirt", bottom: "tailored trousers", outerwear: "none", dress: "none", footwear: "sneakers", materials: ["cotton"], fit: "relaxed", style: "casual", notes:"clean minimal look" },
-        accessories: { items: ["none"], details: "" },
-        lighting: { type: "natural daylight", direction: "side", quality: "soft", tone: "neutral", notes: "soft shadows" },
-        background: { location_type: "outdoor", scene: "clean street background, minimal distractions", clutter: "minimal", complexity: "medium", palette: "neutral" },
-        style: { genre: "lifestyle", strength: "medium", realism_strength: "high", color_grading: "neutral", contrast: "medium", sharpness:"high" },
-        camera: { photo_style: "full-body street portrait", focal_length: "50mm", depth_of_field: "medium", exposure: "balanced", grain:"subtle" },
-        mood: "relaxed",
-        constraints: {
-          must_include: ["no text","no logos","no watermarks","accurate hands","natural skin texture"],
-          avoid: ["extra fingers","warped hands","deformed anatomy","AI artifacts","over-smoothing"]
-        },
-        prompt_output: { user_prefix: "", negative_prompt: "" }
-      },
-
-      "Consistent Character": {
-        meta: { schema_version: APP_VERSION, engine_target: "chatgpt", template_type: "consistent_character" },
-        prompt_profile: {
-          mode: "photoreal",
-          priority: ["identity","subject","composition","clothing","lighting","background","camera","style","constraints"],
-          output_goal: "consistent character identity across images; strict facial stability; no text/logos/watermarks"
-        },
-        output_specs: { num_subjects: 1, aspect_ratio: "4:5", resolution_hint: "high" },
-        composition: {
-          shot_type: "portrait series",
-          body_visibility: "waist-up",
-          framing: "waist-up portrait, include hands if possible",
-          orientation: "vertical",
-          subject_position: "center",
-          camera_height: "eye level",
-          camera_distance: "medium",
-          perspective: "neutral",
-          background_blur_intent: "moderate"
-        },
-        identity: {
-          identity_strength: "high",
-          distinctive_features: "consistent facial proportions and eye spacing, consistent jawline, consistent hairline",
-          variation_seed: "seed-CC-3001",
-          do_not_change: ["face shape","eye shape","jawline","hair color","eye color","skin tone"]
-        },
-        subject: {
-          gender: "female",
-          age: "young adult",
-          ethnicity: "unspecified",
-          skin: { tone: "light", undertone: "neutral", texture: "natural skin texture", details: "visible pores, subtle imperfections, realistic sheen" },
-          face: { shape: "oval", features: "defined jawline, straight nose, stable cheekbones" },
-          eyes: { color: "brown", makeup: "natural" },
-          hair: { color: "dark brown", style: "loose waves", details: "consistent hairline and strand detail" }
-        },
-        clothing: { top: "black turtleneck", bottom: "none", outerwear: "none", dress: "none", footwear: "none", materials: ["cotton"], fit: "tailored", style: "smart casual", notes:"keep consistent between images unless changed deliberately" },
-        accessories: { items: ["none"], details: "" },
-        lighting: { type: "studio softbox", direction: "front", quality: "soft", tone: "neutral", notes:"consistent key light across images" },
-        background: { location_type: "studio", scene: "minimal seamless backdrop", clutter: "minimal", complexity: "low", palette:"neutral" },
-        style: { genre: "editorial", strength: "medium", realism_strength: "high", color_grading: "neutral", contrast: "medium", sharpness:"high" },
-        camera: { photo_style: "consistent portrait series", focal_length: "85mm", depth_of_field: "shallow", exposure:"balanced", grain:"subtle" },
-        mood: "neutral",
-        constraints: {
-          must_include: ["no text","no logos","no watermarks","accurate hands","natural skin texture","strict identity lock"],
-          avoid: ["extra fingers","warped hands","deformed anatomy","blurred face","plastic skin","identity drift","AI artifacts"]
-        },
-        prompt_output: { user_prefix: "", negative_prompt: "" }
-      },
-
-      "Ultra Elite (ChatGPT5.2)": {
-        meta: { schema_version: APP_VERSION, engine_target: "chatgpt", template_type: "ultra_elite" },
-        system_profile: { engine: "chatgpt-5.2", mode: "ultra_elite", generation_intent: "maximum controllability" },
-        prompt_profile: {
-          mode: "photoreal",
-          priority: ["subject.identity","subject.clothing","composition","environment","lighting","camera","rendering","color_pipeline","constraints"],
-          output_goal: "maximum controllability, physically plausible lighting/materials, strict identity preservation, no text/logos/watermarks"
-        },
-        subject: {
+    /* ---------- Templates (same as v0.6.1; shortened here by reference) ---------- */
+    const TEMPLATE_BASES = (function(){
+      // Reuse v0.6.1 template bodies verbatim for schema/assembler compatibility.
+      // (Kept identical except meta.schema_version updated on applyTemplate.)
+      return {
+        "ChatGPT Optimized": {
+          meta: { schema_version: APP_VERSION, engine_target: "chatgpt", template_type: "chatgpt_optimized" },
+          prompt_profile: {
+            mode: "photoreal",
+            priority: ["composition","subject","clothing","accessories","lighting","background","style","camera","constraints"],
+            output_goal: "single photoreal image with clean detail, consistent anatomy, no text/logos/watermarks"
+          },
+          output_specs: { num_subjects: 1, aspect_ratio: "4:5", resolution_hint: "high" },
+          composition: {
+            shot_type: "editorial portrait",
+            body_visibility: "waist-up",
+            framing: "waist-up portrait, include hands if possible, clean crop",
+            orientation: "vertical",
+            subject_position: "center",
+            camera_height: "eye level",
+            camera_distance: "medium",
+            perspective: "neutral",
+            background_blur_intent: "moderate"
+          },
           identity: {
-            core_description: "photoreal young adult woman with balanced facial proportions",
-            age: "young adult",
+            identity_strength: "medium",
+            distinctive_features: "consistent facial proportions, consistent eye shape, consistent jawline",
+            variation_seed: "seed-1001",
+            do_not_change: ["face shape","eye shape","jawline","hair color"]
+          },
+          subject: {
             gender: "female",
+            age: "young adult",
             ethnicity: "unspecified",
-            facial_structure: {
-              face_shape: "oval",
-              skull_structure: "balanced cranial proportions",
-              jawline: "defined but natural",
-              cheekbones: "moderately high cheekbones",
-              nose_shape: "straight nose",
-              eye_shape: "almond-shaped eyes",
-              eyebrow_shape: "natural arched eyebrows"
-            },
-            skin: {
-              tone: "light",
-              undertone: "neutral",
-              texture: "natural skin texture",
-              pores: "visible pores",
-              imperfections: "subtle imperfections",
-              subsurface_scattering: "realistic subsurface scattering"
-            },
-            hair: {
-              color: "dark brown",
-              strand_detail: "high strand fidelity",
-              density: "medium-high density",
-              style: "loose waves",
-              physics: "natural hair physics with gravity and subtle flyaways"
-            },
-            body: {
-              proportions: "realistic proportions",
-              build: "slim-athletic",
-              posture: "neutral confident posture",
-              biomechanics: "anatomically plausible"
-            },
-            identity_lock: true
+            skin: { tone: "light", undertone: "neutral", texture: "natural skin texture", details: "visible pores, subtle imperfections" },
+            face: { shape: "oval", features: "defined cheekbones, straight nose, balanced proportions" },
+            eyes: { color: "brown", makeup: "natural soft makeup" },
+            hair: { color: "dark brown", style: "loose waves", details: "realistic strand detail" }
           },
           clothing: {
-            garments: ["black turtleneck","high-waisted jeans"],
+            top: "black turtleneck",
+            bottom: "high-waisted jeans",
+            outerwear: "none",
+            dress: "none",
+            footwear: "none",
             materials: ["cotton","denim"],
-            fabric_behavior: "natural wrinkles, realistic drape",
-            wear_state: "clean",
-            micro_detail: "visible stitching and fabric grain"
+            fit: "tailored",
+            style: "smart casual",
+            notes: "wrinkle-natural, realistic fabric texture"
           },
-          accessories: {
-            items: ["none"],
-            materials: [],
-            reflections: "physically plausible reflections (if applicable)"
-          }
+          accessories: { items: ["none"], details: "no jewelry" },
+          lighting: { type: "studio softbox", direction: "front", quality: "soft", tone: "neutral", notes: "gentle shadows, flattering key light" },
+          background: { location_type: "studio", scene: "minimal seamless backdrop", clutter: "minimal", complexity: "low", palette: "neutral" },
+          style: { genre: "fashion", strength: "medium", realism_strength: "high", color_grading: "neutral", contrast: "medium", sharpness: "high" },
+          camera: { photo_style: "editorial portrait", focal_length: "85mm", depth_of_field: "shallow", exposure: "balanced", grain: "subtle" },
+          mood: "calm, confident",
+          constraints: {
+            must_include: ["no text","no logos","no watermarks","accurate hands","natural skin texture"],
+            avoid: ["extra fingers","warped hands","deformed anatomy","blurred face","plastic skin","over-smoothed skin","AI artifacts"]
+          },
+          prompt_output: { user_prefix: "", negative_prompt: "" }
         },
-        composition: {
-          framing: "waist-up portrait, clean crop, include hands if possible",
-          rule_of_thirds: "centered with subtle rule-of-thirds balance",
-          subject_priority: "subject is dominant focal point",
-          spatial_depth: "moderate depth separation",
-          negative_space: "minimal",
-          visual_weight: "balanced"
+        "Single Image": {
+          meta: { schema_version: APP_VERSION, engine_target: "chatgpt", template_type: "single_image" },
+          prompt_profile: {
+            mode: "photoreal",
+            priority: ["composition","subject","clothing","lighting","background","camera","style","constraints"],
+            output_goal: "one-off image optimized for impact; clean composition; no text/logos/watermarks"
+          },
+          output_specs: { num_subjects: 1, aspect_ratio: "9:16", resolution_hint: "high" },
+          composition: {
+            shot_type: "full-body lifestyle",
+            body_visibility: "full body",
+            framing: "head-to-toe visible, include shoes, include hands",
+            orientation: "vertical",
+            subject_position: "center",
+            camera_height: "eye level",
+            camera_distance: "far",
+            perspective: "neutral",
+            background_blur_intent: "light"
+          },
+          identity: {
+            identity_strength: "low",
+            distinctive_features: "pleasant natural face, realistic proportions",
+            variation_seed: "seed-2001",
+            do_not_change: []
+          },
+          subject: {
+            gender: "female",
+            age: "young adult",
+            ethnicity: "unspecified",
+            skin: { tone: "medium", undertone: "neutral", texture: "natural", details: "subtle pores, realistic specular highlights" },
+            face: { shape: "oval", features: "balanced proportions" },
+            eyes: { color: "brown", makeup: "light natural makeup" },
+            hair: { color: "dark brown", style: "straight", details: "realistic strands" }
+          },
+          clothing: { top: "white t-shirt", bottom: "tailored trousers", outerwear: "none", dress: "none", footwear: "sneakers", materials: ["cotton"], fit: "relaxed", style: "casual", notes:"clean minimal look" },
+          accessories: { items: ["none"], details: "" },
+          lighting: { type: "natural daylight", direction: "side", quality: "soft", tone: "neutral", notes: "soft shadows" },
+          background: { location_type: "outdoor", scene: "clean street background, minimal distractions", clutter: "minimal", complexity: "medium", palette: "neutral" },
+          style: { genre: "lifestyle", strength: "medium", realism_strength: "high", color_grading: "neutral", contrast: "medium", sharpness:"high" },
+          camera: { photo_style: "full-body street portrait", focal_length: "50mm", depth_of_field: "medium", exposure: "balanced", grain:"subtle" },
+          mood: "relaxed",
+          constraints: {
+            must_include: ["no text","no logos","no watermarks","accurate hands","natural skin texture"],
+            avoid: ["extra fingers","warped hands","deformed anatomy","AI artifacts","over-smoothing"]
+          },
+          prompt_output: { user_prefix: "", negative_prompt: "" }
         },
-        environment: {
-          location: "studio",
-          architecture: "minimal seamless backdrop",
-          atmosphere: "clean air, no haze",
-          particles: "none",
-          weather: "none",
-          physics_interaction: "subject casts realistic contact shadows"
+        "Consistent Character": {
+          meta: { schema_version: APP_VERSION, engine_target: "chatgpt", template_type: "consistent_character" },
+          prompt_profile: {
+            mode: "photoreal",
+            priority: ["identity","subject","composition","clothing","lighting","background","camera","style","constraints"],
+            output_goal: "consistent character identity across images; strict facial stability; no text/logos/watermarks"
+          },
+          output_specs: { num_subjects: 1, aspect_ratio: "4:5", resolution_hint: "high" },
+          composition: {
+            shot_type: "portrait series",
+            body_visibility: "waist-up",
+            framing: "waist-up portrait, include hands if possible",
+            orientation: "vertical",
+            subject_position: "center",
+            camera_height: "eye level",
+            camera_distance: "medium",
+            perspective: "neutral",
+            background_blur_intent: "moderate"
+          },
+          identity: {
+            identity_strength: "high",
+            distinctive_features: "consistent facial proportions and eye spacing, consistent jawline, consistent hairline",
+            variation_seed: "seed-CC-3001",
+            do_not_change: ["face shape","eye shape","jawline","hair color","eye color","skin tone"]
+          },
+          subject: {
+            gender: "female",
+            age: "young adult",
+            ethnicity: "unspecified",
+            skin: { tone: "light", undertone: "neutral", texture: "natural skin texture", details: "visible pores, subtle imperfections, realistic sheen" },
+            face: { shape: "oval", features: "defined jawline, straight nose, stable cheekbones" },
+            eyes: { color: "brown", makeup: "natural" },
+            hair: { color: "dark brown", style: "loose waves", details: "consistent hairline and strand detail" }
+          },
+          clothing: { top: "black turtleneck", bottom: "none", outerwear: "none", dress: "none", footwear: "none", materials: ["cotton"], fit: "tailored", style: "smart casual", notes:"keep consistent between images unless changed deliberately" },
+          accessories: { items: ["none"], details: "" },
+          lighting: { type: "studio softbox", direction: "front", quality: "soft", tone: "neutral", notes:"consistent key light across images" },
+          background: { location_type: "studio", scene: "minimal seamless backdrop", clutter: "minimal", complexity: "low", palette:"neutral" },
+          style: { genre: "editorial", strength: "medium", realism_strength: "high", color_grading: "neutral", contrast: "medium", sharpness:"high" },
+          camera: { photo_style: "consistent portrait series", focal_length: "85mm", depth_of_field: "shallow", exposure:"balanced", grain:"subtle" },
+          mood: "neutral",
+          constraints: {
+            must_include: ["no text","no logos","no watermarks","accurate hands","natural skin texture","strict identity lock"],
+            avoid: ["extra fingers","warped hands","deformed anatomy","blurred face","plastic skin","identity drift","AI artifacts"]
+          },
+          prompt_output: { user_prefix: "", negative_prompt: "" }
         },
-        lighting: {
-          sources: ["softbox key light", "soft fill light"],
-          global_illumination: "soft global illumination",
-          shadow_behavior: "soft realistic shadows",
-          reflections: "controlled highlights",
-          volumetrics: "none"
-        },
-        camera: {
-          model_simulation: "full-frame DSLR look",
-          sensor_size: "full-frame",
-          lens_model: "85mm portrait lens",
-          optical_aberrations: "subtle vignetting, minimal distortion",
-          focus_behavior: "sharp eyes, shallow depth of field",
-          exposure_pipeline: "balanced exposure with protected highlights"
-        },
-        rendering: {
-          realism_level: "high photorealism",
-          material_model: "physically-based materials",
-          texture_resolution: "high",
-          ray_tracing: "implied realistic light transport",
-          motion_blur: "none",
-          noise_profile: "clean with subtle film grain"
-        },
-        color_pipeline: {
-          color_space: "sRGB",
-          dynamic_range: "high",
-          tone_mapping: "natural highlight rolloff",
-          grading_profile: "neutral editorial grade"
-        },
-        constraints: {
-          must_include: ["no text","no logos","no watermarks","accurate hands","natural skin texture","strict identity lock"],
-          avoid: ["extra fingers","warped hands","deformed anatomy","blurred face","plastic skin","identity drift","AI artifacts"],
-          preservation_lock: true
-        },
-        prompt_output: { user_prefix: "", negative_prompt: "" }
-      }
-    };
+        "Ultra Elite (ChatGPT5.2)": {
+          meta: { schema_version: APP_VERSION, engine_target: "chatgpt", template_type: "ultra_elite" },
+          system_profile: { engine: "chatgpt-5.2", mode: "ultra_elite", generation_intent: "maximum controllability" },
+          prompt_profile: {
+            mode: "photoreal",
+            priority: ["subject.identity","subject.clothing","composition","environment","lighting","camera","rendering","color_pipeline","constraints"],
+            output_goal: "maximum controllability, physically plausible lighting/materials, strict identity preservation, no text/logos/watermarks"
+          },
+          subject: {
+            identity: {
+              core_description: "photoreal young adult woman with balanced facial proportions",
+              age: "young adult",
+              gender: "female",
+              ethnicity: "unspecified",
+              facial_structure: {
+                face_shape: "oval",
+                skull_structure: "balanced cranial proportions",
+                jawline: "defined but natural",
+                cheekbones: "moderately high cheekbones",
+                nose_shape: "straight nose",
+                eye_shape: "almond-shaped eyes",
+                eyebrow_shape: "natural arched eyebrows"
+              },
+              skin: {
+                tone: "light",
+                undertone: "neutral",
+                texture: "natural skin texture",
+                pores: "visible pores",
+                imperfections: "subtle imperfections",
+                subsurface_scattering: "realistic subsurface scattering"
+              },
+              hair: {
+                color: "dark brown",
+                strand_detail: "high strand fidelity",
+                density: "medium-high density",
+                style: "loose waves",
+                physics: "natural hair physics with gravity and subtle flyaways"
+              },
+              body: {
+                proportions: "realistic proportions",
+                build: "slim-athletic",
+                posture: "neutral confident posture",
+                biomechanics: "anatomically plausible"
+              },
+              identity_lock: true
+            },
+            clothing: {
+              garments: ["black turtleneck","high-waisted jeans"],
+              materials: ["cotton","denim"],
+              fabric_behavior: "natural wrinkles, realistic drape",
+              wear_state: "clean",
+              micro_detail: "visible stitching and fabric grain"
+            },
+            accessories: {
+              items: ["none"],
+              materials: [],
+              reflections: "physically plausible reflections (if applicable)"
+            }
+          },
+          composition: {
+            framing: "waist-up portrait, clean crop, include hands if possible",
+            rule_of_thirds: "centered with subtle rule-of-thirds balance",
+            subject_priority: "subject is dominant focal point",
+            spatial_depth: "moderate depth separation",
+            negative_space: "minimal",
+            visual_weight: "balanced"
+          },
+          environment: {
+            location: "studio",
+            architecture: "minimal seamless backdrop",
+            atmosphere: "clean air, no haze",
+            particles: "none",
+            weather: "none",
+            physics_interaction: "subject casts realistic contact shadows"
+          },
+          lighting: {
+            sources: ["softbox key light", "soft fill light"],
+            global_illumination: "soft global illumination",
+            shadow_behavior: "soft realistic shadows",
+            reflections: "controlled highlights",
+            volumetrics: "none"
+          },
+          camera: {
+            model_simulation: "full-frame DSLR look",
+            sensor_size: "full-frame",
+            lens_model: "85mm portrait lens",
+            optical_aberrations: "subtle vignetting, minimal distortion",
+            focus_behavior: "sharp eyes, shallow depth of field",
+            exposure_pipeline: "balanced exposure with protected highlights"
+          },
+          rendering: {
+            realism_level: "high photorealism",
+            material_model: "physically-based materials",
+            texture_resolution: "high",
+            ray_tracing: "implied realistic light transport",
+            motion_blur: "none",
+            noise_profile: "clean with subtle film grain"
+          },
+          color_pipeline: {
+            color_space: "sRGB",
+            dynamic_range: "high",
+            tone_mapping: "natural highlight rolloff",
+            grading_profile: "neutral editorial grade"
+          },
+          constraints: {
+            must_include: ["no text","no logos","no watermarks","accurate hands","natural skin texture","strict identity lock"],
+            avoid: ["extra fingers","warped hands","deformed anatomy","blurred face","plastic skin","identity drift","AI artifacts"],
+            preservation_lock: true
+          },
+          prompt_output: { user_prefix: "", negative_prompt: "" }
+        }
+      };
+    })();
 
     const TEMPLATE_INFO = {
       "ChatGPT Optimized": "General-purpose best default. Balanced portrait/fashion output.",
@@ -792,10 +815,24 @@
       "Ultra Elite (ChatGPT5.2)": "Superset control schema. Enables Step 4 (God Mode)."
     };
 
-    /* ---------------- Built-in presets (BNP) ---------------- */
+    /* ---------- Presets ---------- */
+    function getByPath(obj, path){ return path.split(".").reduce((o,k)=> (o ? o[k] : undefined), obj); }
+    function setByPath(obj, path, value){
+      const parts = path.split(".");
+      let cur = obj;
+      for (let i=0;i<parts.length-1;i++){
+        if (!(parts[i] in cur) || cur[parts[i]] === null) cur[parts[i]] = {};
+        cur = cur[parts[i]];
+      }
+      cur[parts[parts.length-1]] = value;
+    }
+    function ensureArrayContains(obj, path, item){
+      const arr = getByPath(obj, path);
+      if (!Array.isArray(arr)) setByPath(obj, path, []);
+      const a2 = getByPath(obj, path);
+      if (!a2.includes(item)) a2.push(item);
+    }
     function applyNeutralBlueprint(data){
-      // Applies stable defaults without destroying user edits where possible.
-      // We set only when the path exists and is empty-ish.
       const setIfBlank = (path, val) => {
         const cur = getByPath(data, path);
         if (cur === undefined || cur === null || cur === "" || (Array.isArray(cur) && cur.length===0)) setByPath(data, path, val);
@@ -818,6 +855,7 @@
       ensureArrayContains(data, "constraints.avoid", "extra fingers");
       ensureArrayContains(data, "constraints.avoid", "warped hands");
     }
+
     const BUILTIN_PRESETS = [
       { name: "— None —", kind:"none", apply: (data)=>data },
       { name: "BNP Full Body", kind:"builtin", apply: (data)=>{ applyNeutralBlueprint(data); setByPath(data,"composition.body_visibility","full body"); setByPath(data,"composition.framing","head-to-toe visible, include shoes, include hands"); return data; } },
@@ -826,253 +864,34 @@
       { name: "BNP Cinematic", kind:"builtin", apply: (data)=>{ applyNeutralBlueprint(data); setByPath(data,"style.genre","cinematic"); setByPath(data,"style.color_grading","cinematic"); setByPath(data,"lighting.type","cinematic lighting"); return data; } }
     ];
 
-    /* ---------------- Field Registry (descriptions, recommendations, ordering, grouping) ---------------- */
+    /* ---------- Field meta (minimal; extend as needed) ---------- */
     const CATEGORY_ORDER = [
-      "Output & Prompt",
-      "Template & Preset",
-      "Composition",
-      "Subject",
-      "Identity & Consistency",
-      "Clothing",
-      "Accessories",
-      "Lighting",
-      "Background",
-      "Camera",
-      "Style",
-      "Mood",
-      "Constraints",
-      "Ultra Elite: System",
-      "Ultra Elite: Environment",
-      "Ultra Elite: Rendering",
-      "Ultra Elite: Color Pipeline"
+      "Output & Prompt","Composition","Subject","Identity & Consistency","Clothing","Accessories","Lighting","Background","Camera","Style","Mood","Constraints",
+      "Ultra Elite: System","Ultra Elite: Environment","Ultra Elite: Rendering","Ultra Elite: Color Pipeline"
     ];
 
     const FIELD_META = {
-      // Output/Prompt
-      "prompt_output.user_prefix": { label:"User Prefix", category:"Output & Prompt", desc:"Manual text prepended to the assembled master prompt. Use for special instructions.", suggestions:["(blank)","editorial fashion, ultra-detailed","cinematic still, filmic realism"] },
-      "prompt_output.negative_prompt": { label:"Negative Prompt", category:"Output & Prompt", desc:"Optional negative prompt text. Prefer using Constraints → Avoid for structured negatives.", suggestions:["(blank)","text, watermark, logo, deformed hands, extra fingers, plastic skin"] },
-
-      // Output specs
-      "output_specs.num_subjects": { label:"Number of subjects", category:"Output & Prompt", desc:"How many subjects are expected in the image (guidance).", suggestions:["1","2","3"] },
-      "output_specs.aspect_ratio": { label:"Aspect ratio", category:"Output & Prompt", desc:"Output framing. Use 4:5 for portraits, 9:16 for full-body vertical.", suggestions:["1:1","4:5","3:4","9:16","16:9"] },
-      "output_specs.resolution_hint": { label:"Resolution hint", category:"Output & Prompt", desc:"Quality hint. High is recommended for realism.", suggestions:["standard","high"] },
-
-      // Composition
-      "composition.shot_type": { label:"Shot type", category:"Composition", desc:"High-level framing intent (portrait, lifestyle, editorial).", suggestions:["editorial portrait","full-body lifestyle","cinematic still","fashion campaign","close-up portrait"] },
+      "output_specs.aspect_ratio": { label:"Aspect ratio", category:"Output & Prompt", desc:"Output framing. 4:5 for portraits, 9:16 for full-body vertical.", suggestions:["1:1","4:5","3:4","9:16","16:9"] },
       "composition.body_visibility": { label:"Body visibility", category:"Composition", desc:"How much of the body is visible in frame.", suggestions:["full body","3/4 body","waist-up","close-up"] },
-      "composition.framing": { label:"Framing", category:"Composition", desc:"Precise framing rules. Include hands/shoes when needed.", suggestions:[
-        "waist-up portrait, include hands if possible, clean crop",
-        "head-to-toe visible, include shoes, include hands",
-        "tight face close-up, eyes centered",
-        "rule-of-thirds framing, clean crop"
-      ]},
+      "composition.framing": { label:"Framing", category:"Composition", desc:"Precise framing rules. Include hands/shoes when needed.", suggestions:["waist-up portrait, include hands if possible, clean crop","head-to-toe visible, include shoes, include hands","tight face close-up, eyes centered"] },
       "composition.orientation": { label:"Orientation", category:"Composition", desc:"Canvas orientation.", suggestions:["vertical","horizontal","square"] },
-      "composition.subject_position": { label:"Subject position", category:"Composition", desc:"Where subject sits in frame.", suggestions:["center","left third","right third"] },
-      "composition.camera_height": { label:"Camera height", category:"Composition", desc:"Perceived camera elevation relative to subject.", suggestions:["eye level","low angle","high angle"] },
-      "composition.camera_distance": { label:"Camera distance", category:"Composition", desc:"Close/medium/far framing distance.", suggestions:["close","medium","far"] },
-      "composition.perspective": { label:"Perspective", category:"Composition", desc:"Perspective feel (neutral vs dramatic).", suggestions:["neutral","dramatic","compressed"] },
-      "composition.background_blur_intent": { label:"Background blur intent", category:"Composition", desc:"How separated subject should be from background.", suggestions:["light","moderate","strong"] },
-
-      // Subject
       "subject.gender": { label:"Gender", category:"Subject", desc:"Subject gender identity (optional).", suggestions:["female","male","(omit)"] },
       "subject.age": { label:"Age", category:"Subject", desc:"Age range descriptor.", suggestions:["teen","young adult","adult","middle-aged","elderly"] },
       "subject.ethnicity": { label:"Ethnicity", category:"Subject", desc:"Optional. Recommended: unspecified unless required.", suggestions:["unspecified","White","Black","East Asian","South Asian","Hispanic/Latino","Middle Eastern/North African"] },
-      "subject.skin.tone": { label:"Skin tone", category:"Subject", desc:"High-level skin tone descriptor.", suggestions:["very light","light","medium","tan","deep"] },
-      "subject.skin.undertone": { label:"Skin undertone", category:"Subject", desc:"Neutral is safest unless specified.", suggestions:["neutral","warm","cool","olive"] },
-      "subject.skin.texture": { label:"Skin texture", category:"Subject", desc:"Texture model. Natural is recommended for realism.", suggestions:["natural skin texture","soft matte","dewy","freckled"] },
-      "subject.skin.details": { label:"Skin detail notes", category:"Subject", desc:"Micro details: pores, subtle imperfections, sheen.", suggestions:["visible pores, subtle imperfections","smooth but natural, subtle pores","dewy highlights, realistic pores"] },
-      "subject.face.shape": { label:"Face shape", category:"Subject", desc:"Face shape descriptor.", suggestions:["oval","round","heart","square","diamond"] },
-      "subject.face.features": { label:"Facial features", category:"Subject", desc:"Key stable traits: cheekbones, nose, jaw.", suggestions:["defined cheekbones, straight nose, balanced proportions","soft features, gentle jawline","sharp jawline, high cheekbones"] },
-      "subject.eyes.color": { label:"Eye color", category:"Subject", desc:"Eye color descriptor.", suggestions:["brown","hazel","green","blue","gray"] },
-      "subject.eyes.makeup": { label:"Makeup", category:"Subject", desc:"Makeup style or none.", suggestions:["natural soft makeup","no makeup","smokey eye","editorial makeup"] },
-      "subject.hair.color": { label:"Hair color", category:"Subject", desc:"Hair color.", suggestions:["dark brown","black","light brown","blonde","red"] },
-      "subject.hair.style": { label:"Hair style", category:"Subject", desc:"Hair style descriptor.", suggestions:["loose waves","straight","curly","bun","ponytail"] },
-      "subject.hair.details": { label:"Hair detail notes", category:"Subject", desc:"Strand detail, flyaways, hairline notes.", suggestions:["realistic strand detail, subtle flyaways","clean hairline, high strand fidelity"] },
-
-      // Identity
-      "identity.identity_strength": { label:"Identity strength", category:"Identity & Consistency", desc:"How strongly to enforce identity stability in master_prompt generation.", suggestions:["low","medium","high"] },
-      "identity.variation_seed": { label:"Variation seed", category:"Identity & Consistency", desc:"Stable identifier for reproducibility (workflow state).", suggestions:["seed-1001","seed-2001","seed-CC-3001"] },
-      "identity.distinctive_features": { label:"Distinctive features", category:"Identity & Consistency", desc:"Short identity lock description used by assembler.", suggestions:["consistent facial proportions, consistent eye shape, consistent jawline"] },
-      "identity.do_not_change": { label:"Do not change (one per line)", category:"Identity & Consistency", desc:"Locked traits. The tool will also reinforce these via constraints/prompting.", suggestions:[] },
-
-      // Clothing
       "clothing.top": { label:"Top", category:"Clothing", desc:"Upper garment.", suggestions:["black turtleneck","white t-shirt","silk blouse","oversized hoodie","none"] },
       "clothing.bottom": { label:"Bottom", category:"Clothing", desc:"Lower garment.", suggestions:["high-waisted jeans","tailored trousers","pleated skirt","none"] },
-      "clothing.outerwear": { label:"Outerwear", category:"Clothing", desc:"Jackets/coats. Use none if not needed.", suggestions:["none","blazer","denim jacket","trench coat","leather jacket"] },
-      "clothing.dress": { label:"Dress", category:"Clothing", desc:"Dress type if applicable.", suggestions:["none","slip dress","midi dress","maxi dress"] },
-      "clothing.footwear": { label:"Footwear", category:"Clothing", desc:"Shoes.", suggestions:["sneakers","ankle boots","heels","loafers","none"] },
-      "clothing.materials": { label:"Materials (one per line)", category:"Clothing", desc:"Primary material list; affects realism.", suggestions:[] },
-      "clothing.fit": { label:"Fit", category:"Clothing", desc:"Garment silhouette.", suggestions:["oversized","relaxed","tailored","tight","cropped"] },
-      "clothing.style": { label:"Style", category:"Clothing", desc:"Wardrobe aesthetic.", suggestions:["casual","streetwear","smart casual","formal","editorial"] },
-      "clothing.notes": { label:"Clothing notes", category:"Clothing", desc:"Micro-details: stitching, wrinkles, wear state.", suggestions:["natural wrinkles, realistic fabric texture","clean minimal look, smooth fabric"] },
-
-      // Accessories
-      "accessories.items": { label:"Accessories (one per line)", category:"Accessories", desc:"Accessories list. Use 'none' when not used.", suggestions:[] },
-      "accessories.details": { label:"Accessory details", category:"Accessories", desc:"Material or style notes.", suggestions:["no jewelry","subtle jewelry, minimal"] },
-
-      // Lighting
-      "lighting.type": { label:"Lighting type", category:"Lighting", desc:"Lighting setup.", suggestions:["studio softbox","natural daylight","rim light","cinematic lighting"] },
-      "lighting.direction": { label:"Direction", category:"Lighting", desc:"Main light direction.", suggestions:["front","side","back","top"] },
-      "lighting.quality": { label:"Quality", category:"Lighting", desc:"Soft vs hard light.", suggestions:["soft","hard","diffused"] },
-      "lighting.tone": { label:"Tone", category:"Lighting", desc:"Color temperature intent.", suggestions:["neutral","warm","cool"] },
-      "lighting.notes": { label:"Lighting notes", category:"Lighting", desc:"Shadow behavior, highlights, fill.", suggestions:["gentle shadows, flattering key light","soft shadows, natural highlight rolloff"] },
-
-      // Background
-      "background.location_type": { label:"Location type", category:"Background", desc:"High-level setting type.", suggestions:["studio","indoor","outdoor"] },
-      "background.scene": { label:"Scene", category:"Background", desc:"Scene description.", suggestions:["minimal seamless backdrop","clean street background, minimal distractions","modern interior, minimal clutter"] },
-      "background.clutter": { label:"Clutter", category:"Background", desc:"Background busyness.", suggestions:["minimal","moderate","busy"] },
-      "background.complexity": { label:"Complexity", category:"Background", desc:"Visual complexity.", suggestions:["low","medium","high"] },
-      "background.palette": { label:"Palette", category:"Background", desc:"Background palette guidance.", suggestions:["neutral","warm neutrals","cool tones"] },
-
-      // Camera
-      "camera.photo_style": { label:"Photo style", category:"Camera", desc:"Overall photo feel.", suggestions:["editorial portrait","fashion campaign","cinematic still","lifestyle photo"] },
       "camera.focal_length": { label:"Focal length", category:"Camera", desc:"Lens feel. 85mm is flattering for portraits.", suggestions:["35mm","50mm","85mm","105mm","50–85mm"] },
       "camera.depth_of_field": { label:"Depth of field", category:"Camera", desc:"Background blur strength.", suggestions:["shallow","medium","deep"] },
-      "camera.exposure": { label:"Exposure", category:"Camera", desc:"Exposure intent.", suggestions:["balanced","bright high-key","dark low-key"] },
-      "camera.grain": { label:"Film grain", category:"Camera", desc:"Texture/noise intent.", suggestions:["none","subtle","medium"] },
-
-      // Style
+      "lighting.type": { label:"Lighting type", category:"Lighting", desc:"Lighting setup.", suggestions:["studio softbox","natural daylight","rim light","cinematic lighting"] },
+      "lighting.direction": { label:"Direction", category:"Lighting", desc:"Main light direction.", suggestions:["front","side","back","top"] },
+      "background.location_type": { label:"Location type", category:"Background", desc:"High-level setting type.", suggestions:["studio","indoor","outdoor"] },
+      "background.scene": { label:"Scene", category:"Background", desc:"Scene description.", suggestions:["minimal seamless backdrop","clean street background, minimal distractions","modern interior, minimal clutter"] },
       "style.genre": { label:"Genre", category:"Style", desc:"Aesthetic genre.", suggestions:["fashion","editorial","lifestyle","cinematic"] },
-      "style.strength": { label:"Style strength", category:"Style", desc:"How strongly to enforce genre styling.", suggestions:["low","medium","high"] },
-      "style.realism_strength": { label:"Realism strength", category:"Style", desc:"How photoreal to aim.", suggestions:["low","medium","high"] },
-      "style.color_grading": { label:"Color grading", category:"Style", desc:"Post-processing feel.", suggestions:["neutral","warm","cool","cinematic"] },
-      "style.contrast": { label:"Contrast", category:"Style", desc:"Contrast level.", suggestions:["low","medium","high"] },
-      "style.sharpness": { label:"Sharpness", category:"Style", desc:"Sharpness guidance.", suggestions:["medium","high","very high"] },
-
-      // Mood
-      "mood": { label:"Mood", category:"Mood", desc:"Emotional tone of the image.", suggestions:["neutral","relaxed","calm, confident","dramatic","joyful"] },
-
-      // Constraints
-      "constraints.must_include": {
-        label:"Must include (one per line)",
-        category:"Constraints",
-        desc:"Hard requirements that must appear in the image and/or output. Keep short and unambiguous.",
-        suggestions:[],
-        recommendation:"Recommended: include 'no text', 'no logos', 'no watermarks', 'accurate hands', and (for realism) 'natural skin texture'."
-      },
-      "constraints.avoid": {
-        label:"Avoid (one per line)",
-        category:"Constraints",
-        desc:"Negative constraints. These are high-impact for reducing common failure modes (hands, anatomy, artifacts).",
-        suggestions:[],
-        recommendation:"Recommended: 'extra fingers', 'warped hands', 'deformed anatomy', 'blurred face', 'plastic skin', 'AI artifacts'. Add 'text'/'watermark' if you see leakage."
-      },
-
-      // Ultra Elite mapping
-      "system_profile.engine": { label:"Engine", category:"Ultra Elite: System", desc:"Target engine identifier.", suggestions:["chatgpt-5.2"] },
-      "system_profile.mode": { label:"Mode", category:"Ultra Elite: System", desc:"Ultra Elite mode.", suggestions:["ultra_elite"] },
-      "system_profile.generation_intent": { label:"Intent", category:"Ultra Elite: System", desc:"High-level goal for the generation engine.", suggestions:["maximum controllability"] },
-
-      "environment.location": { label:"Location", category:"Ultra Elite: Environment", desc:"Physical location descriptor.", suggestions:["studio","outdoor street","modern interior"] },
-      "environment.atmosphere": { label:"Atmosphere", category:"Ultra Elite: Environment", desc:"Air/atmosphere conditions.", suggestions:["clean air, no haze","soft haze","light mist"] },
-
-      "rendering.realism_level": { label:"Realism level", category:"Ultra Elite: Rendering", desc:"Target realism fidelity.", suggestions:["high photorealism","stylized realism"] },
-      "rendering.material_model": { label:"Material model", category:"Ultra Elite: Rendering", desc:"Material/BRDF intent.", suggestions:["physically-based materials"] },
-
-      "color_pipeline.color_space": { label:"Color space", category:"Ultra Elite: Color Pipeline", desc:"Output color space intent.", suggestions:["sRGB","Display P3"] }
+      "mood": { label:"Mood", category:"Mood", desc:"Emotional tone.", suggestions:["neutral","relaxed","calm, confident","dramatic","joyful"] },
+      "constraints.must_include": { label:"Must include", category:"Constraints", desc:"Hard requirements. One item per line.", recommendation:"Include: no text, no logos, no watermarks, accurate hands, natural skin texture." },
+      "constraints.avoid": { label:"Avoid", category:"Constraints", desc:"Negative constraints. One item per line.", recommendation:"Avoid: extra fingers, warped hands, deformed anatomy, blurred face, plastic skin, AI artifacts." }
     };
 
-    // Helper: Ensure every leaf path has at least basic metadata (so "process every value" is satisfied)
-    function ensureMetaForAllLeafPaths(root){
-      const leaves = listLeafPaths(root);
-      for (const p of leaves){
-        if (p === "prompt_output.master_prompt") continue; // generated
-        if (!FIELD_META[p]){
-          // Auto-classify category by prefix
-          const top = p.split(".")[0];
-          const map = {
-            meta: "Output & Prompt",
-            prompt_profile: "Output & Prompt",
-            output_specs: "Output & Prompt",
-            prompt_output: "Output & Prompt",
-            composition: "Composition",
-            subject: "Subject",
-            identity: "Identity & Consistency",
-            clothing: "Clothing",
-            accessories: "Accessories",
-            lighting: "Lighting",
-            background: "Background",
-            camera: "Camera",
-            style: "Style",
-            mood: "Mood",
-            constraints: "Constraints",
-            system_profile: "Ultra Elite: System",
-            environment: "Ultra Elite: Environment",
-            rendering: "Ultra Elite: Rendering",
-            color_pipeline: "Ultra Elite: Color Pipeline"
-          };
-          FIELD_META[p] = {
-            label: p,
-            category: map[top] || "Output & Prompt",
-            desc: "Advanced field. Use when you need fine-grained control.",
-            suggestions: ["(blank)"]
-          };
-        }
-      }
-    }
-
-    /* ---------------- Common fields (Step 2) ---------------- */
-    const COMMON_FIELDS = [
-      "output_specs.aspect_ratio",
-      "composition.body_visibility",
-      "composition.framing",
-      "composition.orientation",
-      "subject.gender",
-      "subject.age",
-      "subject.ethnicity",
-      "clothing.top",
-      "clothing.bottom",
-      "camera.photo_style",
-      "camera.focal_length",
-      "camera.depth_of_field",
-      "lighting.type",
-      "lighting.direction",
-      "background.location_type",
-      "background.scene",
-      "style.genre",
-      "mood",
-      "constraints.must_include",
-      "constraints.avoid"
-    ];
-
-    /* ---------------- Utilities ---------------- */
-    function $(id){ return document.getElementById(id); }
-    function deepClone(obj){ return JSON.parse(JSON.stringify(obj)); }
-    function getByPath(obj, path){ return path.split(".").reduce((o,k)=> (o ? o[k] : undefined), obj); }
-    function setByPath(obj, path, value){
-      const parts = path.split(".");
-      let cur = obj;
-      for (let i=0;i<parts.length-1;i++){
-        if (!(parts[i] in cur) || cur[parts[i]] === null) cur[parts[i]] = {};
-        cur = cur[parts[i]];
-      }
-      cur[parts[parts.length-1]] = value;
-    }
-    function deleteByPath(obj, path){
-      const parts = path.split(".");
-      let cur = obj;
-      for (let i=0;i<parts.length-1;i++){
-        if (!(parts[i] in cur)) return;
-        cur = cur[parts[i]];
-      }
-      delete cur[parts[parts.length-1]];
-    }
-    function ensureArrayContains(obj, path, item){
-      const arr = getByPath(obj, path);
-      if (!Array.isArray(arr)) setByPath(obj, path, []);
-      const a2 = getByPath(obj, path);
-      if (!a2.includes(item)) a2.push(item);
-    }
-    function deepMerge(target, source){
-      for (const k of Object.keys(source)){
-        if (source[k] && typeof source[k] === "object" && !Array.isArray(source[k])){
-          if (!target[k] || typeof target[k] !== "object") target[k] = {};
-          deepMerge(target[k], source[k]);
-        } else {
-          target[k] = source[k];
-        }
-      }
-    }
     function listLeafPaths(obj, prefix=""){
       const out = [];
       if (!obj || typeof obj !== "object") return out;
@@ -1085,14 +904,78 @@
       }
       return out;
     }
+    function ensureMetaForAllLeafPaths(root){
+      const leaves = listLeafPaths(root);
+      for (const p of leaves){
+        if (p === "prompt_output.master_prompt") continue;
+        if (!FIELD_META[p]){
+          const top = p.split(".")[0];
+          const map = {
+            meta:"Output & Prompt", prompt_profile:"Output & Prompt", output_specs:"Output & Prompt", prompt_output:"Output & Prompt",
+            composition:"Composition", subject:"Subject", identity:"Identity & Consistency", clothing:"Clothing", accessories:"Accessories",
+            lighting:"Lighting", background:"Background", camera:"Camera", style:"Style", mood:"Mood", constraints:"Constraints",
+            system_profile:"Ultra Elite: System", environment:"Ultra Elite: Environment", rendering:"Ultra Elite: Rendering", color_pipeline:"Ultra Elite: Color Pipeline"
+          };
+          FIELD_META[p] = { label: p, category: map[top] || "Output & Prompt", desc: "Advanced field. Use when you need fine-grained control.", suggestions:["(blank)"] };
+        }
+      }
+    }
 
-    /* ---------------- Stripping empties ---------------- */
-    function isEmptyScalar(v){ return v === "" || v === null || v === undefined; }
+    /* ---------- Common fields (Step 2 = only edit surface for these; Step 3 excludes these) ---------- */
+    const COMMON_FIELDS = [
+      "output_specs.aspect_ratio",
+      "composition.body_visibility",
+      "composition.framing",
+      "composition.orientation",
+      "subject.gender",
+      "subject.age",
+      "subject.ethnicity",
+      "clothing.top",
+      "clothing.bottom",
+      "camera.focal_length",
+      "camera.depth_of_field",
+      "lighting.type",
+      "lighting.direction",
+      "background.location_type",
+      "background.scene",
+      "style.genre",
+      "mood",
+      "constraints.must_include",
+      "constraints.avoid"
+    ];
+
+    /* ---------- Merge / diff ---------- */
+    function deepMerge(target, source){
+      for (const k of Object.keys(source)){
+        if (source[k] && typeof source[k] === "object" && !Array.isArray(source[k])){
+          if (!target[k] || typeof target[k] !== "object") target[k] = {};
+          deepMerge(target[k], source[k]);
+        } else {
+          target[k] = source[k];
+        }
+      }
+    }
+    function computeOverlayDiff(base, current){
+      if (Array.isArray(current)){
+        const bArr = Array.isArray(base) ? base : [];
+        return (JSON.stringify(bArr) === JSON.stringify(current)) ? undefined : deepClone(current);
+      }
+      if (current && typeof current === "object"){
+        const out = {};
+        const keys = new Set([...Object.keys(base||{}), ...Object.keys(current||{})]);
+        for (const k of keys){
+          const d = computeOverlayDiff(base ? base[k] : undefined, current ? current[k] : undefined);
+          if (d !== undefined) out[k]=d;
+        }
+        return Object.keys(out).length ? out : undefined;
+      }
+      return (base === current) ? undefined : current;
+    }
+
+    /* ---------- Strip empties ---------- */
     function stripEmpties(value){
       if (Array.isArray(value)){
-        const arr = value
-          .map(stripEmpties)
-          .filter(v => !(v === undefined || v === null || v === "" || (Array.isArray(v) && v.length===0)));
+        const arr = value.map(stripEmpties).filter(v => !(v === undefined || v === null || v === "" || (Array.isArray(v) && v.length===0)));
         return arr.length ? arr : undefined;
       }
       if (value && typeof value === "object"){
@@ -1104,10 +987,10 @@
         }
         return Object.keys(out).length ? out : undefined;
       }
-      return isEmptyScalar(value) ? undefined : value;
+      return (value === "" || value === null || value === undefined) ? undefined : value;
     }
 
-    /* ---------------- Assembler: master_prompt ---------------- */
+    /* ---------- Assembler: master_prompt ---------- */
     function buildMasterPrompt(data){
       const parts = [];
       const mode = data.prompt_profile?.mode || "photoreal";
@@ -1115,7 +998,6 @@
 
       const pr = data.prompt_profile?.priority;
       const priority = Array.isArray(pr) && pr.length ? pr : ["composition","subject","clothing","accessories","lighting","background","camera","style","constraints"];
-
       const add = (t)=>{ if (t && String(t).trim()) parts.push(String(t).trim()); };
 
       const pick = (key) => {
@@ -1128,29 +1010,21 @@
         }
         if (key === "composition"){
           const c = data.composition || {};
-          add(c.shot_type);
-          add(c.body_visibility);
-          add(c.framing);
-          add(c.orientation);
-          add(c.subject_position);
-          add(c.camera_height);
-          add(c.perspective);
+          add(c.shot_type); add(c.body_visibility); add(c.framing); add(c.orientation);
+          add(c.subject_position); add(c.camera_height); add(c.perspective);
           return;
         }
         if (key === "subject"){
           const s = data.subject || {};
-          add(s.gender);
-          add(s.age);
+          add(s.gender); add(s.age);
           if (s.ethnicity && s.ethnicity !== "unspecified") add(s.ethnicity);
-          // Add micro realism hints
           if (s.skin?.details) add(s.skin.details);
           if (s.hair?.details) add(s.hair.details);
           return;
         }
         if (key === "clothing"){
           const c = data.clothing || {};
-          add(c.top);
-          add(c.bottom);
+          add(c.top); add(c.bottom);
           if (c.outerwear && c.outerwear !== "none") add(c.outerwear);
           if (c.dress && c.dress !== "none") add(c.dress);
           if (c.footwear && c.footwear !== "none") add(c.footwear);
@@ -1191,7 +1065,6 @@
           if (Array.isArray(c.avoid) && c.avoid.length) add(`avoid: ${c.avoid.join(", ")}`);
           return;
         }
-        // Ultra Elite path-like keys in priority list
         if (key.startsWith("subject.identity")){
           const i = data.subject?.identity;
           if (!i) return;
@@ -1202,37 +1075,29 @@
           return;
         }
       };
-
       priority.forEach(pick);
 
-      // Merge in manual prefix (if any)
       const prefix = data.prompt_output?.user_prefix;
-      const full = prefix && prefix.trim()
-        ? `${prefix.trim()}, ${parts.join(", ")}`
-        : parts.join(", ");
-
-      return full;
+      return (prefix && prefix.trim()) ? `${prefix.trim()}, ${parts.join(", ")}` : parts.join(", ");
     }
 
     function applyMasterPrompt(outData, includeMaster){
       if (!outData.prompt_output) outData.prompt_output = { user_prefix:"", negative_prompt:"" };
       if (includeMaster){
         outData.prompt_output.master_prompt = buildMasterPrompt(outData);
-      } else {
-        if (outData.prompt_output && "master_prompt" in outData.prompt_output) delete outData.prompt_output.master_prompt;
+      } else if (outData.prompt_output && "master_prompt" in outData.prompt_output){
+        delete outData.prompt_output.master_prompt;
       }
     }
 
-    /* ---------------- Clipboard: robust copy for offline Android ---------------- */
+    /* ---------- Clipboard ---------- */
     async function copyToClipboard(text){
-      // Try modern clipboard first
       try{
         if (navigator.clipboard && navigator.clipboard.writeText){
           await navigator.clipboard.writeText(text);
           return true;
         }
-      }catch(_){/* fall through */}
-      // Fallback: execCommand
+      }catch(_){}
       try{
         const ta = document.createElement("textarea");
         ta.value = text;
@@ -1241,8 +1106,7 @@
         ta.style.left = "-9999px";
         ta.style.top = "0";
         document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
+        ta.focus(); ta.select();
         ta.setSelectionRange(0, ta.value.length);
         const ok = document.execCommand("copy");
         document.body.removeChild(ta);
@@ -1252,7 +1116,7 @@
       }
     }
 
-    /* ---------------- Presets: user storage ---------------- */
+    /* ---------- Presets storage ---------- */
     function loadUserPresets(){
       try{
         const raw = localStorage.getItem(LS_KEY);
@@ -1263,24 +1127,18 @@
     }
     function saveUserPresets(p){ localStorage.setItem(LS_KEY, JSON.stringify(p)); }
 
-    /* ---------------- State ---------------- */
+    /* ---------- State ---------- */
     let currentTemplateName = "ChatGPT Optimized";
     let currentData = deepClone(TEMPLATE_BASES[currentTemplateName]);
     let baseData = deepClone(currentData);
-    let includeMaster = false; // clean slate default requires disabled
+    let includeMaster = false;
     let expertUnlocked = false;
     let godUnlocked = false;
 
-    /* ---------------- DOM refs ---------------- */
-    const out1 = $("out1"), out2=$("out2"), out3=$("out3"), out4=$("out4");
-    const status0=$("status0"), status1=$("status1"), status2=$("status2"), status3=$("status3"), status4=$("status4");
-    const commonFieldsEl = $("commonFields");
-    const expertFieldsEl = $("expertFields");
-    const godFieldsEl = $("godFields");
-    const expertHint = $("expertHint");
-    const card4 = $("card4");
+    function isUltraEliteTemplate(){ return currentTemplateName === "Ultra Elite (ChatGPT5.2)"; }
+    function refreshStep4Visibility(){ $("card4").style.display = isUltraEliteTemplate() ? "block" : "none"; }
 
-    /* ---------------- Step 0 init ---------------- */
+    /* ---------- UI init: Step 0 dropdown ---------- */
     (function initStep0(){
       const sel = $("imageTypeSelect");
       Object.keys(IMAGE_ANALYSIS_PROMPTS).forEach(k=>{
@@ -1288,7 +1146,6 @@
         opt.value=k; opt.textContent=k;
         sel.appendChild(opt);
       });
-
       $("genPrompt").onclick=()=>{
         $("promptOut").textContent = IMAGE_ANALYSIS_PROMPTS[sel.value] || "";
         toast("Prompt generated", "ok", "Step 0");
@@ -1297,15 +1154,9 @@
         $("promptOut").textContent = "";
         toast("Prompt cleared", "ok", "Step 0");
       };
-      $("copyPromptBtn").onclick=async ()=>{
-        const txt = $("promptOut").textContent || "";
-        if (!txt.trim()){ toast("Nothing to copy", "err", "Step 0"); return; }
-        const ok = await copyToClipboard(txt);
-        ok ? toast("Copied prompt", "ok", "Step 0") : toast("Copy failed", "err", "Clipboard");
-      };
     })();
 
-    /* ---------------- Dropdown population ---------------- */
+    /* ---------- Template / Preset selects ---------- */
     function populateTemplates(){
       const sel = $("templateSelect");
       sel.innerHTML = "";
@@ -1316,7 +1167,6 @@
       });
       $("templateDesc").textContent = TEMPLATE_INFO[currentTemplateName] || "";
     }
-
     function populatePresets(){
       const sel = $("presetSelect");
       sel.innerHTML = "";
@@ -1341,168 +1191,19 @@
       }
     }
 
-    function isUltraEliteTemplate(){ return currentTemplateName === "Ultra Elite (ChatGPT5.2)"; }
-    function refreshStep4Visibility(){ card4.style.display = isUltraEliteTemplate() ? "block" : "none"; }
-
-    /* ---------------- Field UI controls (dropdown defaults + custom) ---------------- */
-    function normalizeSuggestions(path){
-      const meta = FIELD_META[path] || { suggestions:["(blank)"] };
-      let suggestions = Array.isArray(meta.suggestions) ? meta.suggestions.slice() : [];
-      // Add a baseline set for blank/omit/custom
-      const out = ["(keep)"];
-      suggestions.forEach(s=>{ if (s !== "(keep)" && s !== "Custom…" && s !== "(omit)") out.push(s); });
-      out.push("Custom…");
-      out.push("(omit)");
-      return out;
+    /* ---------- Toggle master_prompt ---------- */
+    function setMasterSwitch(on){
+      includeMaster = !!on;
+      const sw = $("masterSwitch");
+      sw.classList.toggle("on", includeMaster);
+      sw.setAttribute("aria-checked", includeMaster ? "true" : "false");
     }
+    $("masterSwitch").onclick=()=>{
+      setMasterSwitch(!includeMaster);
+      toast(includeMaster ? "master_prompt enabled" : "master_prompt disabled", "ok", "Assembler");
+    };
 
-    function buildDropdownControl(path, currentValue, onChange){
-      const meta = FIELD_META[path] || { desc:"", recommendation:"" };
-      const wrap = document.createElement("div");
-
-      const sel = document.createElement("select");
-      const opts = normalizeSuggestions(path);
-      opts.forEach(v=>{
-        const o=document.createElement("option");
-        o.value=v; o.textContent=v;
-        sel.appendChild(o);
-      });
-
-      // Determine selection
-      const sugg = (FIELD_META[path]?.suggestions || []);
-      if (currentValue && sugg.includes(currentValue)) sel.value = currentValue;
-      else if (!currentValue) sel.value = "(keep)";
-      else sel.value = "Custom…";
-
-      const input = document.createElement("input");
-      input.placeholder = "Custom value…";
-      input.value = (sel.value === "Custom…") ? (currentValue || "") : "";
-      input.style.marginTop = "8px";
-      input.style.display = (sel.value === "Custom…") ? "block" : "none";
-
-      const desc = document.createElement("div");
-      desc.className = "opt-desc";
-      desc.textContent = meta.desc || "";
-
-      if (meta.recommendation){
-        const rec = document.createElement("div");
-        rec.className = "suggest";
-        rec.textContent = `Suggestion: ${meta.recommendation}`;
-        wrap.appendChild(rec);
-      }
-
-      sel.addEventListener("change", ()=>{
-        if (sel.value === "(omit)"){
-          input.style.display="none";
-          onChange({type:"omit", value:""});
-          return;
-        }
-        if (sel.value === "Custom…"){
-          input.style.display="block";
-          onChange({type:"set", value: input.value});
-          return;
-        }
-        input.style.display="none";
-        if (sel.value === "(keep)"){
-          onChange({type:"keep", value:""});
-        } else {
-          onChange({type:"set", value: sel.value});
-        }
-      });
-
-      input.addEventListener("input", ()=>{
-        if (sel.value !== "Custom…") return;
-        onChange({type:"set", value: input.value});
-      });
-
-      wrap.appendChild(sel);
-      wrap.appendChild(input);
-      wrap.appendChild(desc);
-      return wrap;
-    }
-
-    function buildArrayControl(path, arr){
-      const meta = FIELD_META[path] || { desc:"" };
-      const wrap = document.createElement("div");
-      const ta = document.createElement("textarea");
-      ta.value = (arr || []).join("\n");
-      const note = document.createElement("div");
-      note.className = "help-inline";
-      note.textContent = meta.desc ? meta.desc + " " : "";
-      note.textContent += "One item per line.";
-
-      const suggest = document.createElement("div");
-      if (FIELD_META[path]?.recommendation){
-        suggest.className = "suggest";
-        suggest.textContent = `Suggestion: ${FIELD_META[path].recommendation}`;
-      }
-
-      ta.addEventListener("input", ()=>{
-        const lines = ta.value.split("\n").map(s=>s.trim()).filter(Boolean);
-        setByPath(currentData, path, lines);
-      });
-
-      wrap.appendChild(ta);
-      wrap.appendChild(note);
-      if (FIELD_META[path]?.recommendation) wrap.appendChild(suggest);
-      return wrap;
-    }
-
-    function makeControl(path, opts = {}){
-      const v = getByPath(currentData, path);
-
-      if (Array.isArray(v)){
-        const node = buildArrayControl(path, v);
-        if (opts.disabled){
-          node.querySelectorAll("textarea").forEach(el=>{ el.disabled=true; });
-          node.style.opacity="0.65";
-        }
-        return node;
-      }
-
-      if (typeof v === "boolean"){
-        const wrap=document.createElement("div");
-        const sel=document.createElement("select");
-        ["true","false"].forEach(x=>{
-          const o=document.createElement("option");
-          o.value=x; o.textContent=x;
-          sel.appendChild(o);
-        });
-        sel.value=String(v);
-        const desc=document.createElement("div");
-        desc.className="opt-desc";
-        desc.textContent = (FIELD_META[path]?.desc || "");
-        sel.addEventListener("change", ()=> setByPath(currentData, path, sel.value==="true"));
-        wrap.appendChild(sel);
-        wrap.appendChild(desc);
-        if (opts.disabled){
-          sel.disabled=true; wrap.style.opacity="0.65";
-        }
-        return wrap;
-      }
-
-      const currentValue = (v === undefined || v === null) ? "" : String(v);
-      const node = buildDropdownControl(path, currentValue, ({type,value})=>{
-        if (type==="omit") deleteByPath(currentData, path);
-        else if (type==="keep") return;
-        else setByPath(currentData, path, value);
-      });
-      if (opts.disabled){
-        node.querySelectorAll("select,input,textarea").forEach(el=>{ el.disabled=true; });
-        node.style.opacity="0.65";
-      }
-      return node;
-    }
-
-    /* ---------------- God-only gating (Ultra Elite) ---------------- */
-    function isGodOnlyPath(path){
-      if (!isUltraEliteTemplate()) return false;
-      // Keep basic ultra fields in expert; reserve deep system/rendering controls for god.
-      if (path.startsWith("system_profile.") || path.startsWith("rendering.") || path.startsWith("color_pipeline.") || path.startsWith("environment.") || path.startsWith("camera.")) return true;
-      return false;
-    }
-
-    /* ---------------- Render grouped categories ---------------- */
+    /* ---------- Grouping + accordions ---------- */
     function groupPaths(paths){
       const groups = {};
       for (const p of paths){
@@ -1511,14 +1212,12 @@
         if (!groups[cat]) groups[cat] = [];
         groups[cat].push(p);
       }
-      // Sort categories by CATEGORY_ORDER, then alpha
       const cats = Object.keys(groups).sort((a,b)=>{
-        const ia = CATEGORY_ORDER.indexOf(a); const ib = CATEGORY_ORDER.indexOf(b);
-        const ra = ia === -1 ? 999 : ia; const rb = ib === -1 ? 999 : ib;
+        const ia = CATEGORY_ORDER.indexOf(a), ib = CATEGORY_ORDER.indexOf(b);
+        const ra = ia === -1 ? 999 : ia, rb = ib === -1 ? 999 : ib;
         if (ra !== rb) return ra - rb;
         return a.localeCompare(b);
       });
-      // Sort fields within category by label order: we use a stable human order list by meta presence
       cats.forEach(cat=>{
         groups[cat].sort((a,b)=>{
           const la = FIELD_META[a]?.label || a;
@@ -1529,100 +1228,254 @@
       return {cats, groups};
     }
 
-    function renderFieldGroup(container, title, paths, opts){
-      const det = document.createElement("details");
-      det.className = "group";
-      det.open = false; // collapsed by default requirement
-
-      const sum = document.createElement("summary");
-      sum.innerHTML = `<span class="groupTitle">${escapeHtml(title)}</span><span class="groupMeta">${paths.length} fields</span>`;
-      det.appendChild(sum);
-
-      const body = document.createElement("div");
-      body.className = "section";
-
-      for (const path of paths){
-        if (getByPath(currentData, path) === undefined) continue;
-
-        const meta = FIELD_META[path] || { label:path, desc:"" };
-        const row = document.createElement("div");
-        row.className = "row grid2";
-
-        const lab = document.createElement("label");
-        lab.textContent = meta.label || path;
-
-        const ctlWrap = document.createElement("div");
-        const disabled = !!opts?.disabledPath?.(path);
-        ctlWrap.appendChild(makeControl(path, {disabled}));
-
-        // Always show path as small hint for expert users
-        const hint = document.createElement("div");
-        hint.className = "help-inline";
-        hint.innerHTML = `<span style="font-family:var(--mono)">${escapeHtml(path)}</span>`;
-        ctlWrap.appendChild(hint);
-
-        row.appendChild(lab);
-        row.appendChild(ctlWrap);
-        body.appendChild(row);
-      }
-
-      det.appendChild(body);
-      container.appendChild(det);
+    function closeOtherDetails(container, opened){
+      container.querySelectorAll("details").forEach(d=>{
+        if (d !== opened) d.open = false;
+      });
+    }
+    function closeOtherValueDetails(groupEl, openedRow){
+      groupEl.querySelectorAll(".fieldMore").forEach(m=>{
+        if (m !== openedRow) m.classList.remove("open");
+      });
     }
 
-    function renderStep2(){
-      commonFieldsEl.innerHTML = "";
-      const paths = COMMON_FIELDS.filter(p => getByPath(currentData, p) !== undefined);
+    function normalizeSuggestions(path){
+      const meta = FIELD_META[path] || { suggestions:["(blank)"] };
+      const suggestions = Array.isArray(meta.suggestions) ? meta.suggestions.slice() : [];
+      const out = ["(keep)", ...suggestions.filter(x=>x!=="(keep)" && x!=="Custom…" && x!=="(omit)"), "Custom…", "(omit)"];
+      // de-dupe
+      return [...new Set(out)];
+    }
+
+    function buildScalarControl(path){
+      const meta = FIELD_META[path] || {};
+      const wrap = document.createElement("div");
+
+      const currentValue = getByPath(currentData, path);
+      const str = (currentValue === undefined || currentValue === null) ? "" : String(currentValue);
+
+      const sel = document.createElement("select");
+      const opts = normalizeSuggestions(path);
+      opts.forEach(v=>{
+        const o=document.createElement("option"); o.value=v; o.textContent=v; sel.appendChild(o);
+      });
+
+      const sugg = (FIELD_META[path]?.suggestions || []);
+      if (str && sugg.includes(str)) sel.value = str;
+      else if (!str) sel.value = "(keep)";
+      else sel.value = "Custom…";
+
+      const input = document.createElement("input");
+      input.placeholder = "Custom value…";
+      input.value = (sel.value === "Custom…") ? str : "";
+      input.style.marginTop = "8px";
+      input.style.display = (sel.value === "Custom…") ? "block" : "none";
+
+      sel.addEventListener("change", ()=>{
+        if (sel.value === "(omit)"){
+          // delete path
+          const parts = path.split(".");
+          let cur = currentData;
+          for (let i=0;i<parts.length-1;i++){
+            if (!(parts[i] in cur)) return;
+            cur = cur[parts[i]];
+          }
+          delete cur[parts[parts.length-1]];
+          input.style.display = "none";
+          return;
+        }
+        if (sel.value === "Custom…"){
+          input.style.display = "block";
+          setByPath(currentData, path, input.value);
+          return;
+        }
+        input.style.display = "none";
+        if (sel.value === "(keep)") return;
+        setByPath(currentData, path, sel.value);
+      });
+
+      input.addEventListener("input", ()=>{
+        if (sel.value !== "Custom…") return;
+        setByPath(currentData, path, input.value);
+      });
+
+      wrap.appendChild(sel);
+      wrap.appendChild(input);
+      return wrap;
+    }
+
+    function buildArrayControl(path){
+      const meta = FIELD_META[path] || {};
+      const wrap = document.createElement("div");
+      const ta = document.createElement("textarea");
+      ta.value = (getByPath(currentData, path) || []).join("\n");
+      ta.addEventListener("input", ()=>{
+        const lines = ta.value.split("\n").map(s=>s.trim()).filter(Boolean);
+        setByPath(currentData, path, lines);
+      });
+      wrap.appendChild(ta);
+      return wrap;
+    }
+
+    function buildControl(path){
+      const v = getByPath(currentData, path);
+      if (Array.isArray(v)) return buildArrayControl(path);
+      if (typeof v === "boolean"){
+        const sel=document.createElement("select");
+        ["true","false"].forEach(x=>{
+          const o=document.createElement("option"); o.value=x; o.textContent=x; sel.appendChild(o);
+        });
+        sel.value = String(v);
+        sel.addEventListener("change", ()=> setByPath(currentData, path, sel.value==="true"));
+        const w=document.createElement("div"); w.appendChild(sel);
+        return w;
+      }
+      return buildScalarControl(path);
+    }
+
+    function renderFieldRow(groupBody, path){
+      const meta = FIELD_META[path] || { label:path, desc:"" };
+
+      const row = document.createElement("div");
+      row.className = "fieldRow";
+      row.dataset.path = path;
+      row.dataset.label = (meta.label || path).toLowerCase();
+
+      const top = document.createElement("div");
+      top.className = "fieldTop";
+
+      const lab = document.createElement("div");
+      lab.className = "lab";
+      lab.textContent = meta.label || path;
+
+      const pth = document.createElement("div");
+      pth.className = "path";
+      pth.textContent = path;
+
+      const moreBtn = document.createElement("button");
+      moreBtn.className = "fieldMoreBtn";
+      moreBtn.textContent = "More";
+
+      top.appendChild(lab);
+      top.appendChild(pth);
+      top.appendChild(moreBtn);
+
+      const ctl = document.createElement("div");
+      ctl.style.marginTop = "10px";
+      ctl.appendChild(buildControl(path));
+
+      const more = document.createElement("div");
+      more.className = "fieldMore";
+      const desc = document.createElement("div");
+      desc.className = "opt-desc";
+      desc.textContent = meta.desc || "";
+      more.appendChild(desc);
+      if (meta.recommendation){
+        const rec = document.createElement("div");
+        rec.className = "suggest";
+        rec.textContent = `Suggestion: ${meta.recommendation}`;
+        more.appendChild(rec);
+      }
+
+      moreBtn.onclick = ()=>{
+        const willOpen = !more.classList.contains("open");
+        closeOtherValueDetails(groupBody, more);
+        more.classList.toggle("open", willOpen);
+      };
+
+      row.appendChild(top);
+      row.appendChild(ctl);
+      row.appendChild(more);
+      groupBody.appendChild(row);
+    }
+
+    function renderFieldGroups(container, paths){
+      container.innerHTML = "";
       const {cats, groups} = groupPaths(paths);
-      cats.forEach(cat => renderFieldGroup(commonFieldsEl, cat, groups[cat], {disabledPath:()=>false}));
+
+      cats.forEach(cat=>{
+        const det = document.createElement("details");
+        det.className = "group";
+        det.open = false;
+
+        det.addEventListener("toggle", ()=>{
+          if (!det.open) return;
+          closeOtherDetails(container, det);
+        });
+
+        const sum = document.createElement("summary");
+        sum.innerHTML = `<span class="groupTitle">${escapeHtml(cat)}</span><span class="groupMeta">${groups[cat].length} fields</span>`;
+        det.appendChild(sum);
+
+        const body = document.createElement("div");
+        body.className = "section";
+
+        groups[cat].forEach(path=>{
+          if (getByPath(currentData, path) === undefined) return;
+          renderFieldRow(body, path);
+        });
+
+        det.appendChild(body);
+        container.appendChild(det);
+      });
+    }
+
+    /* ---------- Step 2/3 render ---------- */
+    function renderStep2(){
+      renderFieldGroups($("commonFields"), COMMON_FIELDS.filter(p=>getByPath(currentData,p)!==undefined));
     }
 
     function renderStep3(){
+      const expertFieldsEl = $("expertFields");
       expertFieldsEl.innerHTML = "";
-      godFieldsEl.innerHTML = "";
 
       if (!expertUnlocked){
-        expertFieldsEl.innerHTML = `<div class="help-inline">Locked. Unlock Expert Mode in Step 2.</div>`;
         $("expertHint").textContent = "Locked";
+        expertFieldsEl.innerHTML = `<div class="help-inline">Locked. Unlock Expert Mode in Step 2.</div>`;
         return;
       }
       $("expertHint").textContent = isUltraEliteTemplate() ? (godUnlocked ? "Unlocked (God enabled)" : "Unlocked") : "Unlocked";
 
-      // Ensure meta for all fields in current template
       ensureMetaForAllLeafPaths(currentData);
+      const leaves = listLeafPaths(currentData).filter(p => p !== "prompt_output.master_prompt");
 
-      const leaves = listLeafPaths(currentData)
-        .filter(p => p !== "prompt_output.master_prompt"); // generated
+      // remove COMMON_FIELDS to eliminate duplicates (Step 2 is edit surface for these)
+      const setCommon = new Set(COMMON_FIELDS);
+      const expertPaths = leaves.filter(p => !setCommon.has(p));
 
-      // Split expert vs god (ultra only)
-      const expertPaths = [];
-      const godPaths = [];
-      for (const p of leaves){
-        if (isUltraEliteTemplate() && isGodOnlyPath(p)) godPaths.push(p);
-        else expertPaths.push(p);
+      // In ultra template, render "god-only" controls in Step 4; Step 3 remains broad but not gated here.
+      renderFieldGroups(expertFieldsEl, expertPaths);
+    }
+
+    function renderStep4(){
+      const godFieldsEl = $("godFields");
+      godFieldsEl.innerHTML = "";
+      if (!isUltraEliteTemplate()) return;
+      if (!expertUnlocked){
+        godFieldsEl.innerHTML = `<div class="help-inline">Unlock Expert Mode first.</div>`;
+        return;
       }
+      ensureMetaForAllLeafPaths(currentData);
+      const leaves = listLeafPaths(currentData).filter(p => p !== "prompt_output.master_prompt");
+      // God Mode = show everything (including common) but users asked only one edit surface for common -> keep consistent: still exclude common in Step 4 too.
+      const setCommon = new Set(COMMON_FIELDS);
+      const paths = leaves.filter(p => !setCommon.has(p));
+      renderFieldGroups(godFieldsEl, paths);
 
-      // Render expert categories
-      const groupedExpert = groupPaths(expertPaths);
-      groupedExpert.cats.forEach(cat => renderFieldGroup(expertFieldsEl, cat, groupedExpert.groups[cat], {
-        disabledPath: (path)=> (isUltraEliteTemplate() && !godUnlocked && isGodOnlyPath(path))
-      }));
-
-      // Render god categories if ultra selected (Step 4 handles visibility)
-      if (isUltraEliteTemplate()){
-        const groupedGod = groupPaths(godPaths);
-        groupedGod.cats.forEach(cat => renderFieldGroup(godFieldsEl, cat, groupedGod.groups[cat], {
-          disabledPath: ()=> !godUnlocked
-        }));
+      // if not unlocked, visually discourage but keep visible; simplest: toast gating on unlock only.
+      if (!godUnlocked){
+        const msg = document.createElement("div");
+        msg.className = "help-inline";
+        msg.textContent = "Locked. Press “Unlock God Mode” in Step 3.";
+        godFieldsEl.prepend(msg);
       }
     }
 
-    /* ---------------- Output modes ---------------- */
+    /* ---------- Output modes ---------- */
     function generateOutputText(){
       const out = deepClone(currentData);
       applyMasterPrompt(out, includeMaster);
 
-      // Identity do_not_change → reinforce constraints (recommendation request)
       const dnc = getByPath(out, "identity.do_not_change");
       if (Array.isArray(dnc) && dnc.length){
         ensureArrayContains(out, "constraints.must_include", "strict identity lock");
@@ -1639,8 +1492,6 @@
       if (mode === "prompt_only") return (mp || "").trim();
       if (mode === "prompt_and_json") return `MASTER_PROMPT:\n${(mp||"").trim()}\n\nJSON:\n${json}`;
       if (mode === "exec_json") return `Provided: JSON\nTask: Render Image using JSON Data\n\n${json}`;
-
-      // debug
       return JSON.stringify({
         meta: {
           app_version: APP_VERSION,
@@ -1655,45 +1506,37 @@
       }, null, 2);
     }
 
-    function refreshOutputs(msgOk="", msgErr=""){
+    function refreshOutput(){
       const out = generateOutputText();
-      out1.textContent = out || "";
-      out2.textContent = out || "";
-      out3.textContent = out || "";
-      if (out4) out4.textContent = out || "";
-
-      if (msgOk) {
-        status1.textContent = msgOk; status2.textContent = msgOk; status3.textContent = msgOk; status4.textContent = msgOk;
-      }
-      if (msgErr) {
-        status1.textContent = msgErr; status2.textContent = msgErr; status3.textContent = msgErr; status4.textContent = msgErr;
-      }
+      $("outMain").textContent = out || "";
+      $("outHint").textContent = $("outputMode").value;
       saveState();
     }
 
-    function expandOutput(preEl){
-      const cur = preEl.style.maxHeight;
-      preEl.style.maxHeight = (cur && cur !== "42vh" && cur !== "46vh") ? "" : "80vh";
-    }
+    /* ---------- Expand output ---------- */
+    $("expandBtn").onclick=()=>{
+      const pre = $("outMain").parentElement;
+      const cur = pre.style.maxHeight;
+      pre.style.maxHeight = (cur && cur !== "46vh") ? "46vh" : "80vh";
+      toast("Toggled output expand", "ok", "Output");
+    };
 
-    /* ---------------- Template/preset apply ---------------- */
+    /* ---------- Apply template/preset ---------- */
     function applyTemplate(name){
       currentTemplateName = name;
       currentData = deepClone(TEMPLATE_BASES[name]);
       baseData = deepClone(currentData);
-
-      // Always update meta
       if (!currentData.meta) currentData.meta = {};
       currentData.meta.schema_version = APP_VERSION;
 
-      // Switching away from ultra disables god
       if (!isUltraEliteTemplate()) godUnlocked = false;
 
       $("templateDesc").textContent = TEMPLATE_INFO[currentTemplateName] || "";
       refreshStep4Visibility();
       renderStep2();
       renderStep3();
-      refreshOutputs();
+      renderStep4();
+      refreshOutput();
     }
 
     function applyPresetFromSelection(){
@@ -1703,8 +1546,6 @@
         const preset = BUILTIN_PRESETS.find(p=>p.name===name);
         if (!preset) return;
         preset.apply(currentData);
-        renderStep2(); renderStep3();
-        refreshOutputs();
         return;
       }
       if (val.startsWith("user:")){
@@ -1713,29 +1554,65 @@
         const p = presets.find(x=>x.name===name);
         if (!p) return;
         deepMerge(currentData, deepClone(p.overlay));
-        renderStep2(); renderStep3();
-        refreshOutputs();
       }
     }
 
-    /* ---------------- Preset saving (overlay diff) ---------------- */
-    function computeOverlayDiff(base, current){
-      if (Array.isArray(current)){
-        const bArr = Array.isArray(base) ? base : [];
-        const same = JSON.stringify(bArr) === JSON.stringify(current);
-        return same ? undefined : deepClone(current);
+    /* ---------- Locks ---------- */
+    $("unlockExpertBtn").onclick=()=>{
+      expertUnlocked = true;
+      renderStep3();
+      renderStep4();
+      toast("Expert Mode unlocked", "ok", "Step 3");
+      saveState();
+    };
+    $("unlockGodBtn").onclick=()=>{
+      if (!isUltraEliteTemplate()){
+        toast("God Mode requires Ultra Elite template", "err", "Step 4");
+        return;
       }
-      if (current && typeof current === "object"){
-        const out = {};
-        const keys = new Set([...Object.keys(base||{}), ...Object.keys(current||{})]);
-        for (const k of keys){
-          const d = computeOverlayDiff(base ? base[k] : undefined, current ? current[k] : undefined);
-          if (d !== undefined) out[k]=d;
-        }
-        return Object.keys(out).length ? out : undefined;
-      }
-      return (base === current) ? undefined : current;
-    }
+      godUnlocked = true;
+      renderStep4();
+      toast("God Mode unlocked", "ok", "Step 4");
+      saveState();
+    };
+
+    /* ---------- Global navbar actions ---------- */
+    $("barGenerate").onclick=()=>{
+      refreshOutput();
+      $("cardOut").open = true; // open output, accordion closes others
+      toast("Generated output", "ok", "Generate");
+    };
+    $("barCopy").onclick=async ()=>{
+      const txt = $("outMain").textContent || "";
+      if (!txt.trim()){ toast("Nothing to copy", "err", "Copy"); return; }
+      const ok = await copyToClipboard(txt);
+      ok ? toast("Copied", "ok", "Copy") : toast("Copy failed", "err", "Clipboard");
+    };
+
+    /* ---------- Buttons in Step 1 ---------- */
+    $("applyTemplateBtn").onclick=()=>{
+      const name = $("templateSelect").value;
+      applyTemplate(name);
+      toast("Applied template", "ok", name);
+    };
+
+    // Apply Preset auto-generate output + toast
+    $("applyPresetBtn").onclick=()=>{
+      applyPresetFromSelection();
+      renderStep2();
+      renderStep3();
+      renderStep4();
+      refreshOutput();
+      toast("Applied preset + generated output", "ok", ($("presetSelect").value||"").replace(/^.*:/,""));
+    };
+
+    /* ---------- Output mode default + persistence ---------- */
+    $("outputMode").onchange=()=>{
+      refreshOutput();
+      toast("Output mode changed", "ok", $("outputMode").value);
+    };
+
+    /* ---------- Save preset ---------- */
     function savePresetAs(){
       const name = prompt("Preset name?");
       if (!name || !name.trim()){
@@ -1754,10 +1631,12 @@
       populatePresets();
       toast("Preset saved", "ok", record.name);
     }
+    $("savePresetBtn").onclick=savePresetAs;
 
-    /* ---------------- Import/Export JSON ---------------- */
+    /* ---------- Import/Export ---------- */
     function exportJSONFile(){
-      const text = generateOutputText();
+      refreshOutput();
+      const text = $("outMain").textContent || "";
       const blob = new Blob([text], {type:"application/json"});
       const a=document.createElement("a");
       a.href = URL.createObjectURL(blob);
@@ -1766,7 +1645,6 @@
       URL.revokeObjectURL(a.href);
       toast("Exported JSON", "ok", "File");
     }
-
     function importJSONFileFromPicker(){
       const fi = $("fileInput");
       fi.onchange = async ()=>{
@@ -1776,8 +1654,8 @@
           const txt = await file.text();
           const parsed = JSON.parse(txt);
           currentData = parsed;
-          renderStep2(); renderStep3();
-          refreshOutputs();
+          renderStep2(); renderStep3(); renderStep4();
+          refreshOutput();
           toast("Imported JSON", "ok", "File");
         }catch(_){
           toast("Import JSON failed", "err", "Invalid JSON");
@@ -1788,7 +1666,6 @@
       fi.click();
     }
 
-    /* ---------------- Bundle import/export ---------------- */
     function exportBundle(){
       const bundle = {
         meta: { schema_version: APP_VERSION, exported_at: new Date().toISOString() },
@@ -1825,12 +1702,11 @@
             toast("Import failed", "err", "Missing meta.schema_version");
             return;
           }
-
           if (Array.isArray(bundle.user_presets)) saveUserPresets(bundle.user_presets);
 
           if (bundle.state?.template && TEMPLATE_BASES[bundle.state.template]) currentTemplateName = bundle.state.template;
           includeMaster = !!bundle.state?.include_master_prompt;
-          $("outputMode").value = bundle.state?.output_mode || "full_json";
+          $("outputMode").value = bundle.state?.output_mode || "exec_json";
           expertUnlocked = !!bundle.state?.expert_unlocked;
           godUnlocked = !!bundle.state?.god_unlocked;
 
@@ -1842,11 +1718,11 @@
           setMasterSwitch(includeMaster);
           populatePresets();
           refreshStep4Visibility();
-          renderStep2();
-          renderStep3();
-          refreshOutputs();
+          renderStep2(); renderStep3(); renderStep4();
+          refreshOutput();
 
           if (bundle.state?.step_open) setStepOpenState(bundle.state.step_open);
+
           toast("Imported bundle", "ok", "Bundle");
         }catch(_){
           toast("Import bundle failed", "err", "Invalid JSON");
@@ -1857,157 +1733,118 @@
       fi.click();
     }
 
-    /* ---------------- Reset behaviors ---------------- */
-    function resetToBase(){
-      currentData = deepClone(TEMPLATE_BASES[currentTemplateName]);
-      baseData = deepClone(currentData);
-      renderStep2(); renderStep3();
-      refreshOutputs();
-      toast("Reset to template base", "ok", "Reset");
-    }
-    function resetEdits(){
-      currentData = deepClone(baseData);
-      renderStep2(); renderStep3();
-      refreshOutputs();
-      toast("Reset edits", "ok", "Reset");
-    }
-
-    // Reset ALL to Defaults: clean slate + collapse all steps; keep saved presets.
-    function resetAllToDefaults(){
-      currentTemplateName = "ChatGPT Optimized";
-      currentData = deepClone(TEMPLATE_BASES[currentTemplateName]);
-      baseData = deepClone(currentData);
-
-      // Clean slate requirements:
-      // Template: ChatGPT Optimized
-      // Preset: None
-      // master_prompt: disabled
-      // All steps collapsed
-      includeMaster = false;
-      expertUnlocked = false;
-      godUnlocked = false;
-      $("outputMode").value = "full_json";
-
-      $("templateSelect").value = currentTemplateName;
-      $("templateDesc").textContent = TEMPLATE_INFO[currentTemplateName] || "";
-      setMasterSwitch(includeMaster);
-      populatePresets();
-      // select None preset
-      $("presetSelect").value = "builtin:— None —";
-
-      refreshStep4Visibility();
-      renderStep2();
-      renderStep3();
-      refreshOutputs();
-
-      // Collapse all steps
-      setStepOpenState({ card0:false, card1:false, card2:false, card3:false, card4:false });
-      closeDrawer();
-
-      toast("Reset ALL to Defaults", "ok", "Clean slate");
-    }
-
-    /* ---------------- Master switch ---------------- */
-    function setMasterSwitch(on){
-      includeMaster = !!on;
-      const sw = $("masterSwitch");
-      sw.classList.toggle("on", includeMaster);
-      sw.setAttribute("aria-checked", includeMaster ? "true" : "false");
-    }
-    $("masterSwitch").onclick=()=>{
-      setMasterSwitch(!includeMaster);
-      refreshOutputs();
-      toast(includeMaster ? "master_prompt enabled" : "master_prompt disabled", "ok", "Assembler");
-    };
-
-    /* ---------------- Locks ---------------- */
-    $("unlockExpertBtn").onclick=()=>{
-      expertUnlocked = true;
-      renderStep3();
-      refreshOutputs();
-      toast("Expert Mode unlocked", "ok", "Step 3");
-    };
-    $("unlockGodBtn").onclick=()=>{
-      if (!isUltraEliteTemplate()){
-        toast("God Mode requires Ultra Elite template", "err", "Step 4");
-        return;
-      }
-      godUnlocked = true;
-      renderStep3();
-      refreshOutputs();
-      toast("God Mode unlocked", "ok", "Step 4");
-    };
-
-    /* ---------------- Buttons wiring (incl. requested toasts) ---------------- */
-    $("applyTemplateBtn").onclick=()=>{
-      const name = $("templateSelect").value;
-      applyTemplate(name);
-      toast("Applied Template", "ok", name);
-    };
-    $("applyPresetBtn").onclick=()=>{
-      applyPresetFromSelection();
-      toast("Applied Preset", "ok", $("presetSelect").value.replace(/^.*:/,""));
-    };
-
-    function doGenerate(sourceTag){
-      refreshOutputs();
-      toast("Generated Output", "ok", sourceTag);
-    }
-    $("generateBtn").onclick=()=>doGenerate("Step 1");
-    $("gen2").onclick=()=>doGenerate("Step 2");
-    $("gen3").onclick=()=>doGenerate("Step 3");
-    $("gen4").onclick=()=>doGenerate("Step 4");
-    $("barGenerate").onclick=()=>doGenerate("Quick");
-
-    async function doCopy(text, tag){
-      if (!text || !String(text).trim()){
-        toast("Nothing to copy", "err", tag);
-        return;
-      }
-      const ok = await copyToClipboard(String(text));
-      ok ? toast("Copied", "ok", tag) : toast("Copy failed", "err", "Clipboard");
-    }
-
-    $("copyBtn").onclick=()=>doCopy(out1.textContent, "Step 1");
-    $("copy2").onclick=()=>doCopy(out2.textContent, "Step 2");
-    $("copy3").onclick=()=>doCopy(out3.textContent, "Step 3");
-    $("copy4").onclick=()=>doCopy(out4.textContent, "Step 4");
-    $("copyJSONBtn").onclick=()=>{ closeDrawer(); doCopy(out1.textContent, "Drawer"); };
-    $("barCopy").onclick=()=>doCopy(out1.textContent, "Quick");
-
-    $("expandBtn").onclick=()=>{ expandOutput(out1.parentElement); toast("Toggled expand", "ok", "Output"); };
-
     $("exportJSONBtn").onclick=()=>{ closeDrawer(); exportJSONFile(); };
     $("importJSONBtn").onclick=()=>{ closeDrawer(); importJSONFileFromPicker(); };
     $("exportBundleBtn").onclick=()=>{ closeDrawer(); exportBundle(); };
     $("importBundleBtn").onclick=()=>{ closeDrawer(); importBundleFromPicker(); };
 
+    /* ---------- Reset behaviors ---------- */
+    function resetToBase(){
+      currentData = deepClone(TEMPLATE_BASES[currentTemplateName]);
+      baseData = deepClone(currentData);
+      renderStep2(); renderStep3(); renderStep4();
+      refreshOutput();
+      toast("Reset to template base", "ok", "Reset");
+    }
+    function resetEdits(){
+      currentData = deepClone(baseData);
+      renderStep2(); renderStep3(); renderStep4();
+      refreshOutput();
+      toast("Reset edits", "ok", "Reset");
+    }
+    function resetAllToDefaults(){
+      currentTemplateName = "ChatGPT Optimized";
+      currentData = deepClone(TEMPLATE_BASES[currentTemplateName]);
+      baseData = deepClone(currentData);
+
+      includeMaster = false;
+      expertUnlocked = false;
+      godUnlocked = false;
+
+      $("outputMode").value = "exec_json";
+      $("templateSelect").value = currentTemplateName;
+      $("templateDesc").textContent = TEMPLATE_INFO[currentTemplateName] || "";
+      setMasterSwitch(false);
+      populatePresets();
+      $("presetSelect").value = "builtin:— None —";
+
+      refreshStep4Visibility();
+      renderStep2(); renderStep3(); renderStep4();
+      refreshOutput();
+
+      // Default open Step 1 only
+      setStepOpenState({ card0:false, card1:true, card2:false, card3:false, card4:false, cardOut:false });
+
+      closeDrawer();
+      toast("Reset ALL to Defaults", "ok", "Clean slate");
+      saveState();
+    }
+
     $("resetBaseBtn").onclick=()=>{ resetToBase(); closeDrawer(); };
     $("resetEditsBtn").onclick=()=>{ resetEdits(); closeDrawer(); };
     $("resetAllBtn").onclick=resetAllToDefaults;
 
-    $("savePresetBtn").onclick=savePresetAs;
-
-    $("outputMode").onchange=()=>{ refreshOutputs(); toast("Output mode changed", "ok", $("outputMode").value); };
-
-    /* ---------------- Step open/close state ---------------- */
+    /* ---------- Step open state persist ---------- */
     function getStepOpenState(){
-      return {
-        card0: $("card0").open,
-        card1: $("card1").open,
-        card2: $("card2").open,
-        card3: $("card3").open,
-        card4: $("card4").open
-      };
+      const o = {};
+      STEP_IDS.forEach(id=>{ if ($(id)) o[id] = $(id).open; });
+      return o;
     }
     function setStepOpenState(s){
       if (!s) return;
-      ["card0","card1","card2","card3","card4"].forEach(id=>{
-        if ($(id)) $(id).open = !!s[id];
+      STEP_IDS.forEach(id=>{ if ($(id)) $(id).open = !!s[id]; });
+    }
+
+    /* ---------- Search + Jump (Step 3) ---------- */
+    function filterExpertFields(query){
+      query = (query||"").trim().toLowerCase();
+      const container = $("expertFields");
+      const groups = container.querySelectorAll("details.group");
+      groups.forEach(g=>{
+        const rows = g.querySelectorAll(".fieldRow");
+        let any = false;
+        rows.forEach(r=>{
+          const label = r.dataset.label || "";
+          const path = (r.dataset.path || "").toLowerCase();
+          const match = !query || label.includes(query) || path.includes(query);
+          r.style.display = match ? "" : "none";
+          if (match) any = true;
+        });
+        g.style.display = any ? "" : "none";
       });
     }
 
-    /* ---------------- Persist/restore state ---------------- */
+    function jumpToFirstMatch(){
+      const q = $("fieldSearch").value.trim().toLowerCase();
+      if (!q) return;
+      const container = $("expertFields");
+      const first = [...container.querySelectorAll(".fieldRow")].find(r=>{
+        if (r.style.display === "none") return false;
+        const label = r.dataset.label || "";
+        const path = (r.dataset.path || "").toLowerCase();
+        return label.includes(q) || path.includes(q);
+      });
+      if (!first){
+        toast("No match", "err", "Search");
+        return;
+      }
+      // open its category, close others
+      const group = first.closest("details.group");
+      if (group){
+        group.open = true;
+        closeOtherDetails(container, group);
+      }
+      // scroll
+      first.scrollIntoView({behavior:"smooth", block:"center"});
+      toast("Jumped to match", "ok", "Search");
+    }
+
+    $("fieldSearch").addEventListener("input", (e)=> filterExpertFields(e.target.value));
+    $("fieldSearch").addEventListener("keydown", (e)=>{
+      if (e.key === "Enter"){ e.preventDefault(); jumpToFirstMatch(); }
+    });
+
+    /* ---------- Persist/restore state ---------- */
     function saveState(){
       try{
         const s = {
@@ -2034,7 +1871,7 @@
         includeMaster = !!s.includeMaster;
         expertUnlocked = !!s.expertUnlocked;
         godUnlocked = !!s.godUnlocked;
-        $("outputMode").value = s.outputMode || "full_json";
+        $("outputMode").value = s.outputMode || "exec_json";
         if (s.currentData && typeof s.currentData === "object") currentData = s.currentData;
         baseData = deepClone(TEMPLATE_BASES[currentTemplateName]);
 
@@ -2043,13 +1880,12 @@
         setMasterSwitch(includeMaster);
 
         refreshStep4Visibility();
-        renderStep2();
-        renderStep3();
-        refreshOutputs();
+        renderStep2(); renderStep3(); renderStep4();
+        refreshOutput();
 
-        // Ensure Step 1 open by default unless user saved something else
         if (s.step_open) setStepOpenState(s.step_open);
-        if (!("step_open" in s)) $("card1").open = true;
+        // enforce: if multiple open due to older state, keep only first open
+        enforceSingleOpenStep();
 
         return true;
       }catch(_){
@@ -2057,34 +1893,40 @@
       }
     }
 
-    /* ---------------- Init ---------------- */
+    function enforceSingleOpenStep(){
+      const openIds = STEP_IDS.filter(id => $(id) && $(id).open);
+      if (openIds.length <= 1) return;
+      // keep the first, close the rest
+      openIds.slice(1).forEach(id => { if ($(id)) $(id).open = false; });
+    }
+
+    /* ---------- Init ---------- */
     function init(){
-      // Ensure meta for all templates
+      // Ensure meta coverage for templates
       Object.values(TEMPLATE_BASES).forEach(t => ensureMetaForAllLeafPaths(t));
 
-      // Populate selects
       populateTemplates();
       populatePresets();
 
-      // Default selections
       $("templateSelect").value = currentTemplateName;
       $("presetSelect").value = "builtin:— None —";
       $("templateDesc").textContent = TEMPLATE_INFO[currentTemplateName] || "";
 
-      // Restore if exists
-      const restored = restoreState();
+      // Defaults: exec_json + Step 1 open only
+      $("outputMode").value = "exec_json";
+      setMasterSwitch(false);
 
-      // If not restored: enforce Step 1 open by default (your rule)
+      setupStepAccordion();
+
+      const restored = restoreState();
       if (!restored){
-        $("card1").open = true;
-        setMasterSwitch(false); // clean slate default = disabled
         refreshStep4Visibility();
-        renderStep2();
-        renderStep3();
-        refreshOutputs();
+        renderStep2(); renderStep3(); renderStep4();
+        refreshOutput();
+        setStepOpenState({ card0:false, card1:true, card2:false, card3:false, card4:false, cardOut:false });
       }
 
-      toast(restored ? "Restored previous session" : "Initialized", "ok", APP_VERSION);
+      toast(restored ? "Restored session" : "Initialized", "ok", APP_VERSION);
     }
     init();
   </script>
