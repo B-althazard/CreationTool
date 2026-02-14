@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>PromptForge RIS v0.8.0 (Single-file)</title>
+  <title>PromptForge RIS v1.0.1 (Single-file)</title>
   <style>
     :root{
       --bg:#f6f7f9; --card:#fff; --text:#111; --muted:#667085;
@@ -300,7 +300,7 @@
   <header>
     <div class="headrow">
       <div class="titlewrap">
-        <h1>PromptForge RIS v0.8.0 (Offline)</h1>
+        <h1>PromptForge RIS v1.0.1 (Offline)</h1>
         <div class="subtitle">PromptForge, Regenerative Image System • Brave/Firefox compatible</div>
       </div>
     </div>
@@ -331,6 +331,51 @@
           <button class="btn" id="exportJSONBtn">Export JSON</button>
           <button class="btn" id="importJSONBtn">Import JSON</button>
         </div>
+      </div>
+    </details>
+
+    <details id="drawerSchema">
+      <summary>Schema</summary>
+      <div class="dsec">
+        <div class="btnrow">
+          <button class="btn" id="copySchemaBtn">Copy JSON Schema</button>
+          <button class="btn" id="saveSchemaBtn">Save JSON Schema</button>
+        </div>
+        <div class="help-inline">Schema ID: <code id="schemaIdLabel"></code></div>
+      </div>
+    </details>
+
+    <details id="drawerMacros">
+      <summary>Macros</summary>
+      <div class="dsec">
+        <div class="small">Apply opinionated patches (safe defaults) to reduce artifacts and improve adherence.</div>
+        <div class="btnrow" style="margin-top:8px">
+          <button class="btn" id="macroNoTextBtn">No-text strict</button>
+          <button class="btn" id="macroHandsBtn">Hands-safe</button>
+          <button class="btn" id="macroSkinBtn">Skin realism</button>
+          <button class="btn" id="macroIdentityBtn">Identity lock</button>
+        </div>
+      </div>
+    </details>
+
+    <details id="drawerSweep">
+      <summary>Sweeps</summary>
+      <div class="dsec">
+        <div class="small">Generate multiple Prompt Packs by sweeping one field across values (A/B testing in ChatGPT).</div>
+        <div class="row grid2" style="margin-top:8px">
+          <label>Field path</label>
+          <input id="sweepPath" placeholder="e.g., lighting.type" list="schemaPathList" />
+        </div>
+        <div class="row">
+          <label>Values (comma or newline separated)</label>
+          <textarea id="sweepValues" placeholder="studio softbox\nnatural daylight\ncinematic lighting"></textarea>
+        </div>
+        <div class="btnrow">
+          <button class="btn" id="runSweepBtn">Generate sweep</button>
+          <button class="btn danger" id="clearSweepBtn">Clear</button>
+        </div>
+        <div class="hr"></div>
+        <div id="sweepResults" class="small"></div>
       </div>
     </details>
 
@@ -506,6 +551,8 @@
   <option value="prompt_pack_and_json">Prompt Pack + JSON</option>
   <option value="full_json">Full JSON</option>
   <option value="json_patch">JSON Patch (diff)</option>
+  <option value="json_schema">JSON Schema (v1)</option>
+  <option value="json_schema_and_json">JSON Schema + JSON</option>
   <option value="exec_json">Executable JSON (ChatGPT)</option>
   <option value="prompt_only">Master Prompt (legacy)</option>
   <option value="prompt_and_json">Master Prompt + JSON</option>
@@ -530,6 +577,27 @@
       </summary>
       <div class="section">
         <div class="help-inline">Quick edits. Categories accordion (one open at a time). Field “More” shows value-specific guidance.</div>
+
+        <div class="row">
+          <div class="toggleRow">
+            <div>
+              <b>Reference images included</b>
+              <div class="help-inline">ON if you will upload one or more reference images in the ChatGPT chat alongside this prompt. Appends the line <code>Reference images included</code> to the Prompt Pack.</div>
+            </div>
+            <div class="switch" id="refSwitch" role="switch" aria-checked="false"><div class="knob"></div></div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="toggleRow">
+            <div>
+              <b>Strict schema validation</b>
+              <div class="help-inline">ON: validate types + known enums + required core fields before compile. Issues appear in Output lint panel.</div>
+            </div>
+            <div class="switch on" id="strictSwitch" role="switch" aria-checked="true"><div class="knob"></div></div>
+          </div>
+        </div>
+
 <div class="row">
   <div class="toggleRow">
     <div>
@@ -599,7 +667,7 @@
         <div id="lintBox" class="suggest" style="display:none"></div>
         <div class="codewrap">
           <pre><code id="outMain">{}</code></pre>
-        </div
+        </div>
 
         <div class="outActions">
   <button class="btn primary" id="copyPackBtn">Copy Prompt Pack</button>
@@ -644,9 +712,11 @@
     <button class="pill small" id="barActions">Actions</button>
   </div>
 
+  <datalist id="schemaPathList"></datalist>
+
   <script>
     /* =========================================================
-      PromptForge RIS v0.8.0 (Single-file)
+      PromptForge RIS v1.0.1 (Single-file)
       USER_VISIBLE_CHANGES:
       - Step 0 “Merge & Seed”: Name + Purpose + Prompt + JSON merge + copy + upload
       - Step 0: Inject toggle + Detect template toggle
@@ -661,12 +731,15 @@
     ========================================================= */
 
     const APP_NAME = "PromptForge RIS";
-    const APP_VERSION = "v0.8.0-singlefile";
+    const APP_VERSION = "v1.0.1-singlefile";
 
-    const LS_KEY = "promptforge_ris_user_presets_v080";
-    const LS_STATE = "promptforge_ris_state_v080";
-    const LS_RUNS = "promptforge_ris_runs_v080";
+    const LS_KEY = "promptforge_ris_user_presets_v100";
+    const LS_STATE = "promptforge_ris_state_v100";
+    const LS_RUNS = "promptforge_ris_runs_v100";
     const LS_LAST_SEEN = "promptforge_ris_last_seen_version";
+
+    const SCHEMA_ID_V1 = "promptforge.ris.personshot@1.0.0";
+    const SCHEMA_DRAFT = "https://json-schema.org/draft/2020-12/schema";
 
     /* ---------- DOM helpers ---------- */
     const $ = (id)=>document.getElementById(id);
@@ -712,6 +785,33 @@
 
     /* ---------- Changelog ---------- */
     const CHANGELOG = [
+{
+  version: "v1.0.1",
+  user_visible_changes: [
+    "Bundle import/export now round-trips full state (runs, strict validation, show-only-modified, auto-save-runs, Step 0 fields, baseline/baseData, selected preset).",
+    "Preset apply now sets baseline (Reset Edits returns to the post-preset state).",
+    "JSON import now sets baseline to imported doc (Reset Edits returns to imported state)."
+  ],
+  non_user_visible_changes: [
+    "Hardened bundle format metadata and defensive caps on imported run history."
+  ]
+},
+  {
+    version: "v1.0.0",
+    user_visible_changes: [
+      "Added reference-images workflow: dedicated toggle + reference list/notes; prompt packs append ‘Reference images included’ when enabled.",
+      "Added JSON Schema export (copy/save) + Validate Now action; new output modes: JSON Schema + Schema+JSON.",
+      "Added productivity tools: macros (Hands-safe / No-text strict / Skin realism / Identity lock) and a sweep generator for parameter exploration.",
+      "Expanded template set: Corporate headshot, Beauty close-up, Cinematic low-key, Street fashion, Fitness full-body, High-key studio, Golden hour outdoor, Film-grain editorial.",
+      "Improved Prompt Pack compiler: stable section ordering, constraint alias sync, crop guards, stronger lint + strict validation toggle."
+    ],
+    non_user_visible_changes: [
+      "Introduced schema identity: SCHEMA_ID_V1 + draft-2020-12 schema generator for registry paths.",
+      "Added v1 defaults/shims (references, crop guards, constraint aliases) with migrations from v0.7/v0.8 localStorage keys.",
+      "Hardened compile-time constraints: union of hard/negative aliases + enhanced negative token builder.",
+      "Added sweep cache + per-variant prompt-hash for reproducible compare-and-pick workflows."
+    ]
+  },
   {
     version: "v0.8.0",
     user_visible_changes: [
@@ -768,7 +868,7 @@
           localStorage.setItem(LS_LAST_SEEN, APP_VERSION);
           openDrawer();
           $("drawerChangelog").open = true;
-          toast("Changelog updated", "ok", "v0.8.0");
+          toast("Changelog updated", "ok", "v1.0.1");
         }
       }catch(_){}
     }
@@ -939,6 +1039,14 @@ function uniqNorm(arr){
     /* ---------- Templates ---------- */
     const TEMPLATE_INFO = {
       "ChatGPT Optimized": "General-purpose best default. Balanced portrait/fashion output.",
+      "Headshot (Corporate)": "Tight, clean corporate headshot. Neutral studio background, minimal artifacts.",
+      "Beauty Close-Up": "High-detail beauty close-up emphasizing natural skin texture and crisp eyes.",
+      "Cinematic Low-Key": "Moody low-key portrait with cinematic lighting and controlled contrast.",
+      "Street Fashion": "Editorial street-fashion portrait with realistic outdoor lighting and clean subject separation.",
+      "Fitness Full-Body": "Full-body athletic shot with strong framing guards for hands/feet and anatomy.",
+      "High-Key Studio": "Bright high-key studio portrait optimized for clarity and minimal noise.",
+      "Golden Hour Outdoor": "Warm golden-hour outdoor portrait with natural lighting and flattering color.",
+      "Film Grain Editorial": "Editorial portrait with subtle film grain and analog-inspired color pipeline.",
       "Single Image": "Best for one-off impact shots and full-body images.",
       "Consistent Character": "Best for identity stability across multiple generations.",
       "Ultra Elite (ChatGPT5.2)": "Superset control schema. Enables Step 4 (God Mode)."
@@ -1194,6 +1302,106 @@ function uniqNorm(arr){
           prompt_output: { user_prefix: "", negative_prompt: "" }
         }
       };
+
+      // Derived templates (minimize duplication)
+      const addT = (name, from, overlay)=>{
+        base[name] = deepClone(base[from]);
+        deepMerge(base[name], overlay);
+        // normalize meta
+        base[name].meta = base[name].meta || {};
+        base[name].meta.app_name = APP_NAME;
+        base[name].meta.schema_version = APP_VERSION;
+        base[name].meta.engine_target = "chatgpt";
+        if (!base[name].meta.template_type) base[name].meta.template_type = "person_shot";
+        return base[name];
+      };
+
+      addT("Headshot (Corporate)", "ChatGPT Optimized", {
+        output_specs:{ aspect_ratio:"1:1" },
+        composition:{ shot_type:"corporate headshot", body_visibility:"close-up", framing:"tight headshot, eyes centered, include shoulders, clean crop", orientation:"square", crop_guards:{ hands:false, feet:false, headroom:"tight" } },
+        background:{ location_type:"studio", scene:"neutral seamless backdrop, subtle gradient", clutter:"minimal", complexity:"low" },
+        lighting:{ type:"studio softbox", direction:"front", quality:"soft", tone:"neutral" },
+        camera:{ focal_length:"85mm", depth_of_field:"shallow", angle:"eye-level" },
+        style:{ genre:"corporate", color_grading:"neutral", contrast:"medium" },
+        constraints:{ must_include:["no text","no logos","no watermarks","natural skin texture","sharp eyes"], avoid:["extra fingers","warped hands","deformed anatomy","blurred face","plastic skin","AI artifacts"] },
+        references:{ images_included:false, images:[], notes:"" }
+      });
+
+      addT("Beauty Close-Up", "ChatGPT Optimized", {
+        output_specs:{ aspect_ratio:"4:5" },
+        composition:{ shot_type:"beauty close-up", body_visibility:"close-up", framing:"tight face close-up, eyes centered, crisp eyelashes, detailed skin texture", orientation:"vertical", crop_guards:{ hands:false, feet:false, headroom:"tight" } },
+        lighting:{ type:"beauty dish soft light", direction:"front", quality:"soft", tone:"neutral" },
+        camera:{ focal_length:"105mm", depth_of_field:"shallow", angle:"eye-level" },
+        style:{ genre:"beauty editorial", color_grading:"clean neutral", contrast:"medium" },
+        constraints:{ must_include:["no text","no logos","no watermarks","natural skin texture","no plastic skin","sharp eyes"], avoid:["blurred face","over-smoothed skin","AI artifacts","distorted eyes","asymmetrical facial features"] },
+        references:{ images_included:false, images:[], notes:"" }
+      });
+
+      addT("Cinematic Low-Key", "ChatGPT Optimized", {
+        output_specs:{ aspect_ratio:"16:9" },
+        composition:{ shot_type:"cinematic portrait", body_visibility:"waist-up", framing:"waist-up cinematic portrait, allow slight environment, keep face dominant", orientation:"horizontal", crop_guards:{ hands:false, feet:false, headroom:"normal" } },
+        lighting:{ type:"cinematic low-key", direction:"side", quality:"soft with hard edge", tone:"moody" },
+        background:{ location_type:"indoor", scene:"dark minimal background with subtle bokeh", clutter:"minimal", complexity:"low" },
+        camera:{ focal_length:"50mm", depth_of_field:"shallow", angle:"eye-level" },
+        style:{ genre:"cinematic", color_grading:"cinematic", contrast:"high" },
+        constraints:{ must_include:["no text","no logos","no watermarks","clean shadows","natural skin texture"], avoid:["noise","banding","blurred face","plastic skin","AI artifacts"] },
+        references:{ images_included:false, images:[], notes:"" }
+      });
+
+      addT("Street Fashion", "ChatGPT Optimized", {
+        output_specs:{ aspect_ratio:"4:5" },
+        composition:{ shot_type:"street fashion", body_visibility:"3/4 body", framing:"3/4 body street-fashion portrait, include hands, clean crop", orientation:"vertical", crop_guards:{ hands:true, feet:false, headroom:"normal" } },
+        background:{ location_type:"outdoor", scene:"clean city street background, minimal distractions", clutter:"minimal", complexity:"medium" },
+        lighting:{ type:"natural daylight", direction:"side", quality:"soft", tone:"neutral" },
+        camera:{ focal_length:"50mm", depth_of_field:"medium", angle:"eye-level" },
+        style:{ genre:"fashion editorial", color_grading:"neutral", contrast:"medium" },
+        constraints:{ must_include:["no text","no logos","no watermarks","accurate hands","natural skin texture"], avoid:["extra fingers","warped hands","deformed anatomy","AI artifacts"] },
+        references:{ images_included:false, images:[], notes:"" }
+      });
+
+      addT("Fitness Full-Body", "Single Image", {
+        output_specs:{ aspect_ratio:"9:16" },
+        composition:{ shot_type:"fitness full-body", body_visibility:"full body", framing:"head-to-toe visible, include shoes, include hands, athletic stance", orientation:"vertical", crop_guards:{ hands:true, feet:true, headroom:"normal" } },
+        background:{ location_type:"indoor", scene:"modern gym or clean studio, minimal clutter", clutter:"minimal", complexity:"medium" },
+        lighting:{ type:"studio hard-soft mix", direction:"side", quality:"crisp", tone:"neutral" },
+        camera:{ focal_length:"35mm", depth_of_field:"medium", angle:"eye-level" },
+        style:{ genre:"fitness", color_grading:"neutral", contrast:"high" },
+        constraints:{ must_include:["no text","no logos","no watermarks","accurate hands","accurate feet","natural skin texture"], avoid:["extra fingers","warped hands","deformed anatomy","blurred face","AI artifacts"] },
+        references:{ images_included:false, images:[], notes:"" }
+      });
+
+      addT("High-Key Studio", "ChatGPT Optimized", {
+        output_specs:{ aspect_ratio:"4:5" },
+        composition:{ shot_type:"high-key studio portrait", body_visibility:"waist-up", framing:"waist-up portrait, bright background, clean crop", orientation:"vertical", crop_guards:{ hands:false, feet:false, headroom:"normal" } },
+        background:{ location_type:"studio", scene:"pure white seamless backdrop", clutter:"minimal", complexity:"low" },
+        lighting:{ type:"high-key softbox", direction:"front", quality:"soft", tone:"bright neutral" },
+        camera:{ focal_length:"85mm", depth_of_field:"shallow", angle:"eye-level" },
+        style:{ genre:"editorial", color_grading:"clean", contrast:"low" },
+        constraints:{ must_include:["no text","no logos","no watermarks","clean whites","natural skin texture"], avoid:["blown highlights","posterization","plastic skin","AI artifacts"] },
+        references:{ images_included:false, images:[], notes:"" }
+      });
+
+      addT("Golden Hour Outdoor", "ChatGPT Optimized", {
+        output_specs:{ aspect_ratio:"4:5" },
+        composition:{ shot_type:"golden-hour portrait", body_visibility:"waist-up", framing:"waist-up portrait, warm golden-hour rim, clean crop", orientation:"vertical", crop_guards:{ hands:false, feet:false, headroom:"normal" } },
+        background:{ location_type:"outdoor", scene:"soft background greenery or urban park, minimal distractions", clutter:"minimal", complexity:"medium" },
+        lighting:{ type:"golden hour natural light", direction:"back", quality:"soft", tone:"warm" },
+        camera:{ focal_length:"85mm", depth_of_field:"shallow", angle:"eye-level" },
+        style:{ genre:"lifestyle", color_grading:"warm natural", contrast:"medium" },
+        constraints:{ must_include:["no text","no logos","no watermarks","natural skin texture"], avoid:["orange skin","over-saturation","AI artifacts"] },
+        references:{ images_included:false, images:[], notes:"" }
+      });
+
+      addT("Film Grain Editorial", "ChatGPT Optimized", {
+        output_specs:{ aspect_ratio:"3:4" },
+        composition:{ shot_type:"editorial portrait", body_visibility:"waist-up", framing:"waist-up editorial portrait, subtle off-center composition, clean crop", orientation:"vertical", crop_guards:{ hands:false, feet:false, headroom:"normal" } },
+        lighting:{ type:"soft directional", direction:"side", quality:"soft", tone:"neutral" },
+        camera:{ focal_length:"50mm", depth_of_field:"medium", angle:"eye-level" },
+        style:{ genre:"editorial", color_grading:"analog film emulation", contrast:"medium" },
+        rendering:{ quality:"high", grain:"subtle film grain" },
+        constraints:{ must_include:["no text","no logos","no watermarks","subtle film grain","natural skin texture"], avoid:["digital noise","plastic skin","AI artifacts"] },
+        references:{ images_included:false, images:[], notes:"" }
+      });
       return base;
     })();
 
@@ -1295,7 +1503,20 @@ function uniqNorm(arr){
       "style.genre": { label:"Genre", category:"Style", desc:"Aesthetic genre.", suggestions:["fashion","editorial","lifestyle","cinematic"] },
       "mood": { label:"Mood", category:"Mood", desc:"Emotional tone.", suggestions:["neutral","relaxed","calm, confident","dramatic","joyful"] },
       "constraints.must_include": { label:"Must include", category:"Constraints", desc:"Hard requirements. One item per line.", recommendation:"Include: no text, no logos, no watermarks, accurate hands, natural skin texture." },
-      "constraints.avoid": { label:"Avoid", category:"Constraints", desc:"Negative constraints. One item per line.", recommendation:"Avoid: extra fingers, warped hands, deformed anatomy, blurred face, plastic skin, AI artifacts." }
+      "constraints.avoid": { label:"Avoid", category:"Constraints", desc:"Negative constraints. One item per line.", recommendation:"Avoid: extra fingers, warped hands, deformed anatomy, blurred face, plastic skin, AI artifacts." },
+
+      "references.images_included": { label:"Reference images included", category:"Identity & Consistency", desc:"Set true if you will upload reference images in the chat with this prompt pack.", suggestions:["true","false"] },
+      "references.images": { label:"Reference images list", category:"Identity & Consistency", desc:"Optional. One item per line describing each reference image and its role (e.g., identity anchor, wardrobe, pose).", suggestions:["identity anchor: face", "style anchor: lighting", "pose anchor: stance"] },
+      "references.notes": { label:"Reference notes", category:"Identity & Consistency", desc:"Optional notes on how to use the reference images.", suggestions:["Preserve identity; transfer lighting/style only", "Identity from ref#1, outfit from ref#2"] },
+
+      "composition.crop_guards.hands": { label:"Crop guard: hands", category:"Composition", desc:"If true, add stronger hand visibility/quality guardrails.", suggestions:["true","false"] },
+      "composition.crop_guards.feet": { label:"Crop guard: feet/shoes", category:"Composition", desc:"If true, add stronger feet/shoes visibility guardrails for full-body frames.", suggestions:["true","false"] },
+      "composition.crop_guards.headroom": { label:"Headroom", category:"Composition", desc:"Control headroom in framing.", suggestions:["tight","normal","loose"] },
+
+      "constraints.hard": { label:"Hard constraints (v1)", category:"Constraints", desc:"Alias of constraints.must_include.", suggestions:["no text","no logos","no watermarks","natural skin texture","accurate hands"] },
+      "constraints.negative": { label:"Negative constraints (v1)", category:"Constraints", desc:"Alias of constraints.avoid.", suggestions:["extra fingers","warped hands","deformed anatomy","blurred face","plastic skin"] },
+      "constraints.soft": { label:"Soft preferences (v1)", category:"Constraints", desc:"Non-hard preferences; lower priority than hard constraints.", suggestions:["subtle film grain","neutral background","editorial color grade"] },
+      "meta.schema_id": { label:"Schema ID", category:"Output & Prompt", desc:"Schema identifier.", suggestions:[SCHEMA_ID_V1] }
     };
 
     const CATEGORY_ORDER = [
@@ -1308,6 +1529,8 @@ function uniqNorm(arr){
       "composition.body_visibility",
       "composition.framing",
       "composition.orientation",
+      "composition.crop_guards.hands",
+      "composition.crop_guards.feet",
       "subject.gender",
       "subject.age",
       "subject.ethnicity",
@@ -1321,6 +1544,8 @@ function uniqNorm(arr){
       "background.scene",
       "style.genre",
       "mood",
+      "references.images",
+      "references.notes",
       "constraints.must_include",
       "constraints.avoid"
     ];
@@ -1382,6 +1607,26 @@ function inferSchemaRegistry(){
   union.add("meta.run_id");
   union.add("meta.doc_hash");
   union.add("meta.prompt_pack_hash");
+
+  // v1 additions (references, constraint aliases, crop guards)
+  [
+    "references.images_included","references.images","references.notes",
+    "constraints.hard","constraints.soft","constraints.negative",
+    "composition.crop_guards.hands","composition.crop_guards.feet","composition.crop_guards.headroom",
+    "meta.schema_id"
+  ].forEach(p=> union.add(p));
+
+  // Explicit v1 typing (templates might omit these)
+  FIELD_TYPES["references.images_included"] = "boolean";
+  FIELD_TYPES["references.images"] = "array";
+  FIELD_TYPES["references.notes"] = "string";
+  FIELD_TYPES["constraints.hard"] = "array";
+  FIELD_TYPES["constraints.soft"] = "array";
+  FIELD_TYPES["constraints.negative"] = "array";
+  FIELD_TYPES["composition.crop_guards.hands"] = "boolean";
+  FIELD_TYPES["composition.crop_guards.feet"] = "boolean";
+  FIELD_TYPES["composition.crop_guards.headroom"] = "string";
+  FIELD_TYPES["meta.schema_id"] = "string";
   ALL_SCHEMA_PATHS = [...union];
 
   // backfill FIELD_META for any new fields (so expert mode can render them)
@@ -1466,13 +1711,58 @@ function coerceTypesInPlace(doc){
   return issues;
 }
 
+/* ---------- v1 defaults + compatibility shims ---------- */
+function ensureDefaultsForV1(doc){
+  if (!doc || typeof doc !== "object") return doc;
+
+  // meta
+  doc.meta = doc.meta || {};
+  if (!doc.meta.schema_id) doc.meta.schema_id = SCHEMA_ID_V1;
+
+  // references
+  if (!isPlainObject(doc.references)) doc.references = {};
+  if (doc.references.images_included === undefined) doc.references.images_included = false;
+  if (typeof doc.references.images_included === "string") doc.references.images_included = (doc.references.images_included.toLowerCase().trim() === "true");
+  if (doc.references.images === undefined) doc.references.images = [];
+  if (typeof doc.references.images === "string") doc.references.images = parseFreeformTokens(doc.references.images);
+  if (!Array.isArray(doc.references.images)) doc.references.images = [];
+  if (doc.references.notes === undefined) doc.references.notes = "";
+
+  // constraints v1 aliases
+  if (!isPlainObject(doc.constraints)) doc.constraints = {};
+  if (!Array.isArray(doc.constraints.must_include) && Array.isArray(doc.constraints.hard)) doc.constraints.must_include = doc.constraints.hard.slice();
+  if (!Array.isArray(doc.constraints.avoid) && Array.isArray(doc.constraints.negative)) doc.constraints.avoid = doc.constraints.negative.slice();
+  if (!Array.isArray(doc.constraints.hard)) doc.constraints.hard = Array.isArray(doc.constraints.must_include) ? doc.constraints.must_include.slice() : [];
+  if (!Array.isArray(doc.constraints.negative)) doc.constraints.negative = Array.isArray(doc.constraints.avoid) ? doc.constraints.avoid.slice() : [];
+  if (!Array.isArray(doc.constraints.soft)) doc.constraints.soft = [];
+
+  // crop guards
+  if (!isPlainObject(doc.composition)) doc.composition = {};
+  if (!isPlainObject(doc.composition.crop_guards)) doc.composition.crop_guards = {};
+  if (doc.composition.crop_guards.hands === undefined) doc.composition.crop_guards.hands = false;
+  if (doc.composition.crop_guards.feet === undefined) doc.composition.crop_guards.feet = false;
+  if (!doc.composition.crop_guards.headroom) doc.composition.crop_guards.headroom = "normal";
+
+  // prompt_output
+  if (!isPlainObject(doc.prompt_output)) doc.prompt_output = {};
+  if (doc.prompt_output.user_prefix === undefined) doc.prompt_output.user_prefix = "";
+  if (doc.prompt_output.negative_prompt === undefined) doc.prompt_output.negative_prompt = "";
+  if (doc.prompt_output.directive === undefined) doc.prompt_output.directive = "";
+
+  return doc;
+}
+
     /* ---------- Preset storage ---------- */
     function loadUserPresets(){
   try{
     let raw = localStorage.getItem(LS_KEY);
     if (!raw){
-      // v0.7.x migration
-      raw = localStorage.getItem("promptforge_ris_user_presets_v070");
+      // v0.8.x migration
+      raw = localStorage.getItem("promptforge_ris_user_presets_v080");
+      if (!raw){
+        // v0.7.x migration
+        raw = localStorage.getItem("promptforge_ris_user_presets_v070");
+      }
       if (raw) localStorage.setItem(LS_KEY, raw);
     }
     if (!raw) return [];
@@ -1485,7 +1775,12 @@ function coerceTypesInPlace(doc){
 /* ---------- Run history (localStorage) ---------- */
 function loadRuns(){
   try{
-    const raw = localStorage.getItem(LS_RUNS);
+    let raw = localStorage.getItem(LS_RUNS);
+    if (!raw){
+      // v0.8.x migration
+      raw = localStorage.getItem("promptforge_ris_runs_v080");
+      if (raw) localStorage.setItem(LS_RUNS, raw);
+    }
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
@@ -1596,145 +1891,241 @@ function buildNegativeTokens(doc, mustIncludeArr, avoidArr){
   return uniqNorm([...baseline, ...fromMust, ...avoid, ...extra]);
 }
 
+function validateDocV1(doc){
+  inferSchemaRegistry();
+  const errors = [];
+  const warnings = [];
+
+  // Required-ish core fields
+  [
+    "output_specs.aspect_ratio",
+    "composition.body_visibility",
+    "composition.framing"
+  ].forEach(p=>{
+    const v = getByPath(doc, p);
+    if (v === undefined || v === null || v === "" || (Array.isArray(v) && v.length===0)) errors.push(`Missing required field: ${p}`);
+  });
+
+  // Constraints present (either alias)
+  const hard = uniq([...(doc?.constraints?.must_include||[]), ...(doc?.constraints?.hard||[])]);
+  if (!hard.length) warnings.push("No hard constraints found (constraints.must_include / constraints.hard). Expect lower controllability.");
+
+  // Type checks for present fields
+  const present = listLeafPaths(doc).filter(p => p !== "prompt_output.master_prompt");
+  for (const p of present){
+    if (!ALL_SCHEMA_PATHS.includes(p)){
+      warnings.push(`Unknown field present: ${p}`);
+      continue;
+    }
+    const expected = FIELD_TYPES[p] || "string";
+    const v = getByPath(doc, p);
+    if (expected === "array" && !Array.isArray(v)) errors.push(`Type error at ${p}: expected array`);
+    else if (expected === "boolean" && typeof v !== "boolean") errors.push(`Type error at ${p}: expected boolean`);
+    else if (expected === "number" && typeof v !== "number") warnings.push(`Type warning at ${p}: expected number`);
+    else if (expected === "string" && typeof v !== "string") warnings.push(`Type warning at ${p}: expected string`);
+  }
+
+  // Soft enum checks for a few high-value controls
+  const enumFields = [
+    "output_specs.aspect_ratio",
+    "composition.body_visibility",
+    "composition.orientation",
+    "lighting.direction",
+    "background.location_type",
+    "camera.depth_of_field",
+    "composition.crop_guards.headroom"
+  ];
+  for (const p of enumFields){
+    const v = getByPath(doc, p);
+    if (!v) continue;
+    const sug = (FIELD_META[p] && Array.isArray(FIELD_META[p].suggestions)) ? FIELD_META[p].suggestions : null;
+    if (sug && sug.length && !sug.includes(String(v)) && !sug.includes("(omit)")) warnings.push(`Nonstandard value for ${p}: “${v}”`);
+  }
+
+  // References toggle coherence
+  if (doc?.references?.images_included){
+    const list = Array.isArray(doc.references.images) ? doc.references.images : [];
+    const notes = String(doc.references.notes || "").trim();
+    if (!list.length && !notes) warnings.push("Reference images included is ON but references.images / references.notes are empty.");
+  }
+
+  return { errors, warnings };
+}
+
 function compilePromptPack(doc, ctx={}){
   const lint = { errors:[], warnings:[], notes:[] };
+  ensureDefaultsForV1(doc);
+
+  if (strictValidation){
+    const v = validateDocV1(doc);
+    lint.errors.push(...v.errors);
+    lint.warnings.push(...v.warnings);
+  }
 
   const name = String(ctx.chatName ?? doc?.meta?.chat_name ?? "").trim();
   const purposeText = String(ctx.purpose ?? doc?.meta?.purpose ?? "").trim();
-  const templateLabel = String(ctx.templateName ?? doc?.meta?.template_type ?? currentTemplateName ?? "").trim();
+  const templateLabel = String(ctx.templateName ?? doc?.meta?.template ?? currentTemplateName ?? "").trim();
+  const schemaId = String(doc?.meta?.schema_id || SCHEMA_ID_V1);
   const runId = String(doc?.meta?.run_id ?? "").trim() || uuidv4();
 
   const isUltra = isUltraDoc(doc);
   const ar = doc?.output_specs?.aspect_ratio || doc?.render?.output?.aspect_ratio || "4:5";
   const mode = doc?.prompt_profile?.mode || "photoreal";
 
-  const parts = [];
+  const sec = {
+    subject: [],
+    identity: [],
+    clothing: [],
+    composition: [],
+    background: [],
+    lighting: [],
+    camera: [],
+    style: [],
+    quality: []
+  };
 
-  // Core
-  parts.push(`${mode} image`);
-  if (ar) parts.push(`aspect ratio ${ar}`);
+  // Core controls
+  sec.quality.push(`${mode} image`);
+  if (ar) sec.quality.push(`aspect ratio ${ar}`);
 
   // Subject + identity
   if (isUltra){
     const id = doc?.subject?.identity || {};
-    if (id.core_description) parts.push(id.core_description);
+    if (id.core_description) sec.subject.push(id.core_description);
     const fs = id.facial_structure || {};
     const fsBits = ["face_shape","jawline","cheekbones","nose_shape","eye_shape","eyebrow_shape"].map(k=>fs[k]).filter(Boolean);
-    if (fsBits.length) parts.push(`facial structure: ${fsBits.join(", ")}`);
+    if (fsBits.length) sec.identity.push(`facial structure: ${fsBits.join(", ")}`);
     const sk = id.skin || {};
     const skinBits = [sk.texture, sk.pores, sk.imperfections, sk.subsurface_scattering].filter(Boolean);
-    if (skinBits.length) parts.push(`skin: ${skinBits.join(", ")}`);
+    if (skinBits.length) sec.identity.push(`skin: ${skinBits.join(", ")}`);
     const hr = id.hair || {};
     const hairBits = [hr.color, hr.style, hr.physics, hr.strand_detail, hr.density].filter(Boolean);
-    if (hairBits.length) parts.push(`hair: ${hairBits.join(", ")}`);
-    if (id.identity_lock) parts.push("strict identity lock");
+    if (hairBits.length) sec.identity.push(`hair: ${hairBits.join(", ")}`);
+    if (id.identity_lock) sec.identity.push("strict identity lock");
   } else {
     const s = doc?.subject || {};
     const demographics = [s.gender, s.age, (s.ethnicity && s.ethnicity !== "unspecified") ? s.ethnicity : ""].filter(Boolean).join(", ");
-    if (demographics) parts.push(demographics);
-    if (s.skin?.details) parts.push(s.skin.details);
-    if (s.face?.features) parts.push(s.face.features);
-    if (s.hair?.details) parts.push(s.hair.details);
+    if (demographics) sec.subject.push(demographics);
+    if (s.skin?.details) sec.identity.push(s.skin.details);
+    if (s.face?.features) sec.identity.push(s.face.features);
+    if (s.hair?.details) sec.identity.push(s.hair.details);
 
     const id = doc?.identity || {};
-    if (id.identity_strength) parts.push(`identity lock: ${id.identity_strength}`);
-    if (id.distinctive_features) parts.push(id.distinctive_features);
-    if (Array.isArray(id.do_not_change) && id.do_not_change.length) parts.push(`do not change: ${id.do_not_change.join(", ")}`);
+    if (id.identity_strength) sec.identity.push(`identity lock: ${id.identity_strength}`);
+    if (id.distinctive_features) sec.identity.push(id.distinctive_features);
+    if (Array.isArray(id.do_not_change) && id.do_not_change.length) sec.identity.push(`do not change: ${id.do_not_change.join(", ")}`);
   }
 
   // Clothing
   if (isUltra){
     const cl = doc?.subject?.clothing || {};
-    if (Array.isArray(cl.garments) && cl.garments.length) parts.push(`clothing: ${cl.garments.join(", ")}`);
-    if (Array.isArray(cl.materials) && cl.materials.length) parts.push(`materials: ${cl.materials.join(", ")}`);
-    if (cl.fabric_behavior) parts.push(cl.fabric_behavior);
-    if (cl.micro_detail) parts.push(cl.micro_detail);
+    if (Array.isArray(cl.garments) && cl.garments.length) sec.clothing.push(`garments: ${cl.garments.join(", ")}`);
+    if (Array.isArray(cl.materials) && cl.materials.length) sec.clothing.push(`materials: ${cl.materials.join(", ")}`);
+    if (cl.fabric_behavior) sec.clothing.push(cl.fabric_behavior);
+    if (cl.micro_detail) sec.clothing.push(cl.micro_detail);
   } else {
     const c = doc?.clothing || {};
     const garments = [c.top, c.bottom, (c.outerwear && c.outerwear !== "none") ? c.outerwear : "", (c.dress && c.dress !== "none") ? c.dress : "", (c.footwear && c.footwear !== "none") ? c.footwear : ""].filter(Boolean);
-    if (garments.length) parts.push(`clothing: ${garments.join(", ")}`);
-    if (Array.isArray(c.materials) && c.materials.length) parts.push(`materials: ${c.materials.join(", ")}`);
-    if (c.notes) parts.push(c.notes);
+    if (garments.length) sec.clothing.push(`garments: ${garments.join(", ")}`);
+    if (Array.isArray(c.materials) && c.materials.length) sec.clothing.push(`materials: ${c.materials.join(", ")}`);
+    if (c.notes) sec.clothing.push(c.notes);
   }
 
   // Composition
   const comp = doc?.composition || {};
   if (isUltra){
-    if (comp.framing) parts.push(comp.framing);
-    if (comp.rule_of_thirds) parts.push(comp.rule_of_thirds);
-    if (comp.spatial_depth) parts.push(comp.spatial_depth);
-    if (comp.visual_weight) parts.push(comp.visual_weight);
+    if (comp.framing) sec.composition.push(comp.framing);
+    if (comp.rule_of_thirds) sec.composition.push(comp.rule_of_thirds);
+    if (comp.spatial_depth) sec.composition.push(comp.spatial_depth);
+    if (comp.visual_weight) sec.composition.push(comp.visual_weight);
   } else {
-    parts.push([comp.shot_type, comp.body_visibility, comp.framing].filter(Boolean).join(", "));
-    parts.push([comp.orientation, comp.subject_position, comp.camera_height, comp.camera_distance, comp.perspective].filter(Boolean).join(", "));
-    if (comp.background_blur_intent) parts.push(`background blur: ${comp.background_blur_intent}`);
+    const line1 = [comp.shot_type, comp.body_visibility, comp.framing].filter(Boolean).join(", ");
+    const line2 = [comp.orientation, comp.subject_position, comp.camera_height, comp.camera_distance, comp.perspective].filter(Boolean).join(", ");
+    if (line1) sec.composition.push(line1);
+    if (line2) sec.composition.push(line2);
+    if (comp.background_blur_intent) sec.composition.push(`background blur: ${comp.background_blur_intent}`);
   }
+
+  const cg = comp.crop_guards || {};
+  if (cg.headroom) sec.composition.push(`headroom: ${cg.headroom}`);
 
   // Environment / background
   if (isUltra){
     const env = doc?.environment || {};
     const envBits = [env.location, env.architecture].filter(Boolean).join(", ");
-    if (envBits) parts.push(envBits);
-    if (env.atmosphere) parts.push(env.atmosphere);
-    if (env.physics_interaction) parts.push(env.physics_interaction);
+    if (envBits) sec.background.push(envBits);
+    if (env.atmosphere) sec.background.push(env.atmosphere);
+    if (env.physics_interaction) sec.background.push(env.physics_interaction);
   } else {
     const bg = doc?.background || {};
     const bgBits = [bg.location_type, bg.scene].filter(Boolean).join(", ");
-    if (bgBits) parts.push(bgBits);
-    if (bg.palette) parts.push(`palette: ${bg.palette}`);
+    if (bgBits) sec.background.push(bgBits);
+    if (bg.palette) sec.background.push(`palette: ${bg.palette}`);
+    if (bg.notes) sec.background.push(bg.notes);
   }
 
   // Lighting
   const light = doc?.lighting || {};
   if (isUltra){
-    if (Array.isArray(light.sources) && light.sources.length) parts.push(`lighting: ${light.sources.join(", ")}`);
-    if (light.global_illumination) parts.push(light.global_illumination);
-    if (light.shadow_behavior) parts.push(light.shadow_behavior);
-    if (light.reflections) parts.push(light.reflections);
-    if (light.volumetrics) parts.push(light.volumetrics);
+    if (Array.isArray(light.sources) && light.sources.length) sec.lighting.push(`sources: ${light.sources.join(", ")}`);
+    if (light.global_illumination) sec.lighting.push(light.global_illumination);
+    if (light.shadow_behavior) sec.lighting.push(light.shadow_behavior);
+    if (light.reflections) sec.lighting.push(light.reflections);
+    if (light.volumetrics) sec.lighting.push(light.volumetrics);
   } else {
     const lBits = [light.type, light.direction, light.quality, light.tone].filter(Boolean).join(", ");
-    if (lBits) parts.push(lBits);
-    if (light.notes) parts.push(light.notes);
+    if (lBits) sec.lighting.push(lBits);
+    if (light.notes) sec.lighting.push(light.notes);
   }
 
-  // Camera + style/rendering
+  // Camera + rendering/style
   const cam = doc?.camera || {};
   if (isUltra){
     const camBits = [cam.model_simulation, cam.lens_model, cam.sensor_size].filter(Boolean).join(", ");
-    if (camBits) parts.push(camBits);
-    if (cam.focus_behavior) parts.push(cam.focus_behavior);
-    if (cam.optical_aberrations) parts.push(cam.optical_aberrations);
-    if (cam.exposure_pipeline) parts.push(cam.exposure_pipeline);
+    if (camBits) sec.camera.push(camBits);
+    if (cam.focus_behavior) sec.camera.push(cam.focus_behavior);
+    if (cam.optical_aberrations) sec.camera.push(cam.optical_aberrations);
+    if (cam.exposure_pipeline) sec.camera.push(cam.exposure_pipeline);
 
     const r = doc?.rendering || {};
     const rBits = [r.realism_level, r.material_model, r.texture_resolution].filter(Boolean).join(", ");
-    if (rBits) parts.push(rBits);
-    if (r.noise_profile) parts.push(r.noise_profile);
-    if (r.ray_tracing) parts.push(r.ray_tracing);
-    if (r.motion_blur) parts.push(r.motion_blur);
+    if (rBits) sec.style.push(rBits);
+    if (r.noise_profile) sec.style.push(r.noise_profile);
+    if (r.ray_tracing) sec.style.push(r.ray_tracing);
+    if (r.motion_blur) sec.style.push(r.motion_blur);
 
     const cp = doc?.color_pipeline || {};
     const cpBits = [cp.tone_mapping, cp.grading_profile, cp.dynamic_range].filter(Boolean).join(", ");
-    if (cpBits) parts.push(cpBits);
+    if (cpBits) sec.style.push(cpBits);
   } else {
     const camBits = [cam.photo_style, cam.focal_length, cam.depth_of_field, cam.exposure, cam.grain].filter(Boolean).join(", ");
-    if (camBits) parts.push(camBits);
+    if (camBits) sec.camera.push(camBits);
 
     const st = doc?.style || {};
     const stBits = [st.genre, st.strength, st.realism_strength, st.color_grading, st.contrast, st.sharpness].filter(Boolean).join(", ");
-    if (stBits) parts.push(stBits);
+    if (stBits) sec.style.push(stBits);
   }
 
-  if (doc?.mood) parts.push(`mood: ${doc.mood}`);
+  if (doc?.mood) sec.style.push(`mood: ${doc.mood}`);
 
-  // Constraints + negatives
-  const must = Array.isArray(doc?.constraints?.must_include) ? doc.constraints.must_include : [];
-  const avoid = Array.isArray(doc?.constraints?.avoid) ? doc.constraints.avoid : [];
+  // Constraints + negatives (v1 aliases)
+  const hard = uniq([...(doc?.constraints?.must_include||[]), ...(doc?.constraints?.hard||[])]);
+  const avoid = uniq([...(doc?.constraints?.avoid||[]), ...(doc?.constraints?.negative||[])]);
+  const soft = Array.isArray(doc?.constraints?.soft) ? doc.constraints.soft : [];
 
-  const mustLower = must.map(s=>String(s||"").toLowerCase());
+  // Crop guard amplification
+  if (cg.hands){
+    ["include hands", "accurate hands and fingers", "no hand deformation"].forEach(t=>{ if (!hard.map(x=>String(x).toLowerCase()).includes(t.toLowerCase())) hard.push(t); });
+    ["extra fingers","warped hands","deformed hands"].forEach(t=>{ if (!avoid.map(x=>String(x).toLowerCase()).includes(t.toLowerCase())) avoid.push(t); });
+  }
+  if (cg.feet){
+    ["include feet and shoes", "accurate feet"].forEach(t=>{ if (!hard.map(x=>String(x).toLowerCase()).includes(t.toLowerCase())) hard.push(t); });
+    ["cut off shoes","missing feet"].forEach(t=>{ if (!avoid.map(x=>String(x).toLowerCase()).includes(t.toLowerCase())) avoid.push(t); });
+  }
+
+  const hardLower = hard.map(s=>String(s||"").toLowerCase());
   ["no text","no logos","no watermarks"].forEach(x=>{
-    if (!mustLower.includes(x)) lint.warnings.push(`constraints.must_include missing “${x}”`);
+    if (!hardLower.includes(x)) lint.warnings.push(`Hard constraints missing “${x}”`);
   });
 
   const avoidLower = avoid.map(s=>String(s||"").toLowerCase());
@@ -1745,19 +2136,49 @@ function compilePromptPack(doc, ctx={}){
   const framing = String(doc?.composition?.framing || "").toLowerCase();
   const bv = String(doc?.composition?.body_visibility || "").toLowerCase();
   if (bv.includes("full") && !framing.includes("toe") && !framing.includes("feet") && !framing.includes("shoes")) lint.warnings.push("Full-body requested but framing doesn't mention feet/shoes.");
-  if (framing.includes("hands") && !(avoidLower.includes("extra fingers") || avoidLower.includes("warped hands"))) lint.warnings.push("Framing asks for hands but constraints.avoid doesn't explicitly guard hands/fingers.");
+  if ((framing.includes("hands") || cg.hands) && !(avoidLower.includes("extra fingers") || avoidLower.includes("warped hands"))) lint.warnings.push("Hands are requested but negative constraints don't explicitly guard hands/fingers.");
 
-  const negative = buildNegativeTokens(doc, must, avoid);
+  // Quality/guard section content
+  if (hard.length) sec.quality.push(`hard constraints: ${hard.join(", ")}`);
+  if (soft.length) sec.quality.push(`soft constraints: ${soft.join(", ")}`);
 
-  const positive = uniqNorm(parts).join(", ").replace(/\s+/g, " ").trim();
+  const negative = buildNegativeTokens(doc, hard, avoid);
 
-  const directive = String(doc?.prompt_output?.directive || "").trim() || "Generate 1 image. Output ONLY the image. No captions. No text/logos/watermarks.";
+  // Sectioned prompt body (stable ordering)
+  const promptLines = [];
+  const emit = (title, arr)=>{
+    const a = (arr || []).map(x=>String(x||"").trim()).filter(Boolean);
+    if (!a.length) return;
+    promptLines.push(`${title}:`);
+    a.forEach(x=> promptLines.push(`- ${x}`));
+    promptLines.push("");
+  };
+
+  emit("SUBJECT", sec.subject);
+  emit("IDENTITY", sec.identity);
+  emit("CLOTHING", sec.clothing);
+  emit("COMPOSITION", sec.composition);
+  emit("BACKGROUND", sec.background);
+  emit("LIGHTING", sec.lighting);
+  emit("CAMERA", sec.camera);
+  emit("STYLE", sec.style);
+  emit("QUALITY_GUARDS", sec.quality);
+
+  const promptBody = promptLines.join("\n").trim();
+  const positiveFlat = uniqNorm([promptBody.replace(/\n/g, " ")]).join(" ").replace(/\s+/g," ").trim();
+
+  const directive = String(doc?.prompt_output?.directive || "").trim() || "Use the built-in image generator to create 1 image. Output ONLY the image. No explanations. No captions. No text/logos/watermarks.";
+
+  const refsOn = !!doc?.references?.images_included;
+  const refList = Array.isArray(doc?.references?.images) ? doc.references.images : [];
+  const refNotes = String(doc?.references?.notes || "").trim();
 
   const docHash = fnv1a32(stableStringify(doc));
-  const packHash = fnv1a32(positive + "||" + negative.join("|"));
+  const packHash = fnv1a32(promptBody + "||" + negative.join("|"));
 
-  const promptPack = [
+  const packLines = [
     `[PROMPT_PACK • ${APP_NAME} ${APP_VERSION}]`,
+    `Schema-ID: ${schemaId}`,
     `Name: ${name || "(none)"}`,
     `Purpose: ${purposeText || "(none)"}`,
     `Template: ${templateLabel || "(unknown)"}`,
@@ -1767,20 +2188,35 @@ function compilePromptPack(doc, ctx={}){
     "",
     "INSTRUCTIONS:",
     `- ${directive}`,
+    ...(refsOn ? ["- Use the uploaded reference images as anchors. Preserve identity and key attributes."] : []),
     "",
-    "PROMPT (positive):",
-    positive || "(empty)",
+    "PROMPT:",
+    promptBody || "(empty)",
     "",
     "NEGATIVE:",
     negative.length ? negative.join(", ") : "(none)"
-  ].join("\n");
+  ];
+
+  if (refsOn || refList.length || refNotes){
+    packLines.push("");
+    packLines.push("REFERENCE_IMAGES:");
+    if (refList.length) refList.forEach(x=> packLines.push(`- ${x}`));
+    if (refNotes) packLines.push(`Notes: ${refNotes}`);
+  }
+
+  if (refsOn){
+    packLines.push("");
+    packLines.push("Reference images included");
+  }
+
+  const promptPack = packLines.join("\n");
 
   return {
     promptPack,
-    positive,
+    positive: positiveFlat,
     negative,
     lint,
-    manifest: { run_id: runId, doc_hash: docHash, prompt_pack_hash: packHash, aspect_ratio: ar }
+    manifest: { run_id: runId, doc_hash: docHash, prompt_pack_hash: packHash, aspect_ratio: ar, schema_id: schemaId }
   };
 }
 
@@ -1822,6 +2258,264 @@ function computeJsonPatch(base, cur){
   };
   walk(base, cur, "");
   return ops;
+}
+
+/* ---------- JSON Schema export (draft 2020-12, pragmatic subset) ---------- */
+function generateJsonSchema(templateName){
+  inferSchemaRegistry();
+  const tpl = TEMPLATE_BASES[templateName] ? deepClone(TEMPLATE_BASES[templateName]) : {};
+  ensureDefaultsForV1(tpl);
+
+  const root = {
+    $schema: SCHEMA_DRAFT,
+    $id: SCHEMA_ID_V1,
+    title: "PromptForge RIS Person Shot Schema",
+    type: "object",
+    additionalProperties: false,
+    properties: {},
+    required: ["meta", "prompt_profile", "output_specs", "composition", "constraints", "prompt_output"]
+  };
+
+  const setLeaf = (objSchema, parts, leafSchema)=>{
+    let cur = objSchema;
+    for (let i=0;i<parts.length;i++){
+      const k = parts[i];
+      cur.properties = cur.properties || {};
+      if (i === parts.length-1){
+        cur.properties[k] = leafSchema;
+        return;
+      }
+      if (!cur.properties[k]){
+        cur.properties[k] = { type:"object", additionalProperties:false, properties:{} };
+      }
+      cur = cur.properties[k];
+    }
+  };
+
+  const leafSchemaFor = (path)=>{
+    const t = FIELD_TYPES[path] || "string";
+    const meta = FIELD_META[path] || {};
+    const desc = meta.desc || meta.recommendation || "";
+    const sug = Array.isArray(meta.suggestions) ? meta.suggestions : null;
+    const baseVal = getByPath(tpl, path);
+
+    let s = { type: (t === "array") ? "array" : (t === "boolean") ? "boolean" : (t === "number") ? "number" : (t === "object") ? "object" : "string" };
+
+    if (desc) s.description = desc;
+    if (sug && sug.length) s.examples = sug.filter(x=>x && x !== "(omit)").slice(0, 10);
+
+    if (path.startsWith("meta.") && ["meta.run_id","meta.doc_hash","meta.prompt_pack_hash"].includes(path)) s.readOnly = true;
+    if (path === "meta.schema_id") s.readOnly = true;
+
+    if (s.type === "array"){
+      s.items = { type:"string" };
+      if (Array.isArray(baseVal)) s.default = baseVal;
+    } else if (s.type === "boolean"){
+      if (typeof baseVal === "boolean") s.default = baseVal;
+    } else if (s.type === "number"){
+      if (typeof baseVal === "number") s.default = baseVal;
+    } else if (s.type === "string"){
+      if (typeof baseVal === "string") s.default = baseVal;
+    } else if (s.type === "object"){
+      s.additionalProperties = true;
+    }
+
+    return s;
+  };
+
+  // build properties from the registry
+  ALL_SCHEMA_PATHS.slice().sort().forEach(p=>{
+    const parts = p.split(".");
+    setLeaf(root, parts, leafSchemaFor(p));
+  });
+
+  // a few friendly top-level annotations
+  root.$comment = `Generated by ${APP_NAME} ${APP_VERSION} on ${new Date().toISOString()}`;
+  return root;
+}
+
+function renderSchemaPathList(){
+  try{
+    inferSchemaRegistry();
+    const dl = $("schemaPathList");
+    if (!dl) return;
+    dl.innerHTML = ALL_SCHEMA_PATHS.slice().sort().map(p=>`<option value="${escapeHtml(p)}"></option>`).join("");
+  }catch(_){ /* noop */ }
+}
+
+function exportSchemaText(){
+  return JSON.stringify(generateJsonSchema(currentTemplateName), null, 2);
+}
+
+async function copySchemaToClipboard(){
+  try{
+    const txt = exportSchemaText();
+    await navigator.clipboard.writeText(txt);
+    toast("Schema copied", "ok", "Schema");
+  }catch(_){
+    toast("Copy failed", "err", "Schema");
+  }
+}
+
+function downloadSchemaFile(){
+  try{
+    const txt = exportSchemaText();
+    const blob = new Blob([txt], {type:"application/schema+json"});
+    const a=document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `promptforge_ris_schema_${Date.now()}.schema.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast("Schema saved", "ok", "Schema");
+  }catch(_){
+    toast("Save failed", "err", "Schema");
+  }
+}
+
+function validateNow(){
+  refreshOutput();
+  const l = lastDerived?.lint || {errors:[],warnings:[]};
+  const e = (l.errors||[]).length;
+  const w = (l.warnings||[]).length;
+  if (e) toast(`${e} error(s), ${w} warning(s)`, "err", "Validation");
+  else if (w) toast(`${w} warning(s)`, "warn", "Validation");
+  else toast("No issues detected", "ok", "Validation");
+}
+
+// Macro helpers keep constraint aliases in sync
+function addHard(token){
+  ensureDefaultsForV1(currentData);
+  ensureArrayContains(currentData, "constraints.must_include", token);
+  ensureArrayContains(currentData, "constraints.hard", token);
+}
+function addNeg(token){
+  ensureDefaultsForV1(currentData);
+  ensureArrayContains(currentData, "constraints.avoid", token);
+  ensureArrayContains(currentData, "constraints.negative", token);
+}
+
+function macroHandsSafe(){
+  setByPath(currentData, "composition.crop_guards.hands", true);
+  ["include hands", "accurate hands and fingers", "no hand deformation"].forEach(addHard);
+  ["extra fingers","warped hands","deformed hands"].forEach(addNeg);
+  toast("Applied Hands-safe", "ok", "Macro");
+  renderStep2(); renderStep3(); renderStep4(); refreshOutput(); saveState();
+}
+
+function macroNoTextStrict(){
+  ["no text","no logos","no watermarks","no signature","no captions"].forEach(addHard);
+  ["text","watermark","logo","signature"].forEach(addNeg);
+  toast("Applied No-text strict", "ok", "Macro");
+  renderStep2(); renderStep3(); renderStep4(); refreshOutput(); saveState();
+}
+
+function macroSkinRealism(){
+  ["natural skin texture","visible pores","subsurface scattering","realistic micro-contrast","accurate skin shading"].forEach(addHard);
+  ["plastic skin","over-smoothed skin","airbrushed skin","waxy skin"].forEach(addNeg);
+  toast("Applied Skin realism", "ok", "Macro");
+  renderStep2(); renderStep3(); renderStep4(); refreshOutput(); saveState();
+}
+
+function macroIdentityLock(){
+  setByPath(currentData, "identity.identity_strength", "strict");
+  addHard("strict identity lock");
+  toast("Applied Identity lock", "ok", "Macro");
+  renderStep2(); renderStep3(); renderStep4(); refreshOutput(); saveState();
+}
+
+function coerceSweepValue(path, raw){
+  const t = FIELD_TYPES[path] || "string";
+  if (t === "array") return parseFreeformTokens(raw);
+  if (t === "boolean") return /^(true|1|yes|on)$/i.test(String(raw).trim());
+  if (t === "number"){
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : raw;
+  }
+  return String(raw).trim();
+}
+
+function renderSweepResults(items){
+  const wrap = $("sweepResults");
+  if (!wrap) return;
+  if (!items || !items.length){ wrap.innerHTML = "<div class=\"help-inline\">No sweep results yet.</div>"; return; }
+  wrap.innerHTML = items.map((it, idx)=>{
+    const title = escapeHtml(it.title);
+    const hash = escapeHtml(it.manifest?.prompt_pack_hash || "");
+    return `
+      <div class="card" style="margin-top:10px;">
+        <div class="row" style="justify-content:space-between; align-items:center;">
+          <div>
+            <div><b>${title}</b></div>
+            <div class="help-inline">Prompt-Hash: ${hash}</div>
+          </div>
+          <div class="btnrow">
+            <button class="btn" data-sweep-copy="${idx}">Copy Prompt</button>
+            <button class="btn" data-sweep-json="${idx}">Copy JSON</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  // bind copy buttons
+  wrap.querySelectorAll("button[data-sweep-copy]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      const i = Number(btn.getAttribute("data-sweep-copy"));
+      const txt = items[i]?.promptPack || "";
+      try{ await navigator.clipboard.writeText(txt); toast("Copied", "ok", "Sweep"); }catch(_){ toast("Copy failed", "err", "Sweep"); }
+    };
+  });
+  wrap.querySelectorAll("button[data-sweep-json]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      const i = Number(btn.getAttribute("data-sweep-json"));
+      const txt = JSON.stringify(items[i]?.doc || {}, null, 2);
+      try{ await navigator.clipboard.writeText(txt); toast("Copied", "ok", "Sweep"); }catch(_){ toast("Copy failed", "err", "Sweep"); }
+    };
+  });
+}
+
+function runSweep(){
+  inferSchemaRegistry();
+  const path = String($("sweepPath")?.value || "").trim();
+  const vals = parseFreeformTokens($("sweepValues")?.value || "");
+  if (!path){ toast("Select a field path", "warn", "Sweep"); return; }
+  if (!vals.length){ toast("Add at least one value", "warn", "Sweep"); return; }
+  if (!ALL_SCHEMA_PATHS.includes(path)) toast("Path not in schema registry (will still attempt)", "warn", "Sweep");
+
+  const results = [];
+  for (const v of vals){
+    const variant = deepClone(currentData);
+    ensureDefaultsForV1(variant);
+    setByPath(variant, path, coerceSweepValue(path, v));
+
+    // compile without mutating global state
+    const doc = stripEmpties(variant) || {};
+    doc.meta = doc.meta || {};
+    doc.meta.app_name = APP_NAME;
+    doc.meta.schema_version = APP_VERSION;
+    doc.meta.schema_id = SCHEMA_ID_V1;
+    doc.meta.template = currentTemplateName;
+    doc.meta.generated_at = new Date().toISOString();
+    const compiled = compilePromptPack(doc, { chatName, purpose, templateName: currentTemplateName });
+    results.push({
+      title: `${path} = ${v}`,
+      promptPack: compiled.promptPack,
+      manifest: compiled.manifest,
+      doc
+    });
+  }
+
+  window.__sweepCache = results;
+  renderSweepResults(results);
+  toast(`Generated ${results.length} variant(s)`, "ok", "Sweep");
+}
+
+function clearSweep(){
+  window.__sweepCache = [];
+  if ($("sweepPath")) $("sweepPath").value = "";
+  if ($("sweepValues")) $("sweepValues").value = "";
+  renderSweepResults([]);
+  toast("Cleared", "ok", "Sweep");
 }
 
 
@@ -1943,6 +2637,8 @@ function computeJsonPatch(base, cur){
 
     let showOnlyModified = false;
     let autoSaveRuns = false;
+
+    let strictValidation = true;
 
     let lastDerived = null; // {promptPack, json, lint, manifest, doc}
 
@@ -2090,6 +2786,40 @@ function setDiffSwitch(on){
   saveState();
 }
 if ($("diffSwitch")) $("diffSwitch").onclick=()=> setDiffSwitch(!showOnlyModified);
+
+/* ---------- Reference images included toggle ---------- */
+function setRefSwitch(on){
+  ensureDefaultsForV1(currentData);
+  setByPath(currentData, "references.images_included", !!on);
+  const sw = $("refSwitch");
+  if (sw){
+    sw.classList.toggle("on", !!on);
+    sw.setAttribute("aria-checked", on ? "true" : "false");
+  }
+  refreshOutput();
+  saveState();
+}
+if ($("refSwitch")) $("refSwitch").onclick=()=>{
+  const cur = !!getByPath(currentData, "references.images_included");
+  setRefSwitch(!cur);
+  toast(!cur ? "Reference images enabled" : "Reference images disabled", "ok", "Refs");
+};
+
+/* ---------- Strict validation toggle ---------- */
+function setStrictSwitch(on){
+  strictValidation = !!on;
+  const sw = $("strictSwitch");
+  if (sw){
+    sw.classList.toggle("on", strictValidation);
+    sw.setAttribute("aria-checked", strictValidation ? "true" : "false");
+  }
+  refreshOutput();
+  saveState();
+}
+if ($("strictSwitch")) $("strictSwitch").onclick=()=>{
+  setStrictSwitch(!strictValidation);
+  toast(strictValidation ? "Strict validation enabled" : "Strict validation disabled", "ok", "Schema");
+};
 
     /* ---------- Auto-save runs toggle ---------- */
     function setAutoSaveSwitch(on){
@@ -2532,10 +3262,14 @@ function renderStep2(){
 function buildCanonicalDocForExport(){
   const out = deepClone(currentData);
 
+  // Ensure v1 defaults and shims (refs, crop guards, constraint aliases, prompt_output.directive)
+  ensureDefaultsForV1(out);
+
   // standard meta
   out.meta = out.meta || {};
   out.meta.app_name = APP_NAME;
   out.meta.schema_version = APP_VERSION;
+  out.meta.schema_id = out.meta.schema_id || SCHEMA_ID_V1;
   out.meta.template = currentTemplateName;
   out.meta.chat_name = (chatName || "").trim();
   out.meta.purpose = (purpose || "").trim();
@@ -2550,6 +3284,16 @@ function buildCanonicalDocForExport(){
     ensureArrayContains(out, "constraints.must_include", "strict identity lock");
     dnc.forEach(t => ensureArrayContains(out, "constraints.avoid", `do not change ${t}`));
   }
+
+  // v1: keep aliases in sync at export/compile time (safe union)
+  ensureDefaultsForV1(out);
+  const hardU = uniq([...(out.constraints.must_include||[]), ...(out.constraints.hard||[])]);
+  const negU = uniq([...(out.constraints.avoid||[]), ...(out.constraints.negative||[])]);
+  out.constraints.must_include = hardU.slice();
+  out.constraints.hard = hardU.slice();
+  out.constraints.avoid = negU.slice();
+  out.constraints.negative = negU.slice();
+
 
   const stripped = stripEmpties(out) || {};
 
@@ -2583,6 +3327,14 @@ ${json}`;
     const base = stripEmpties(deepClone(baseData)) || {};
     const patch = computeJsonPatch(base, stripped);
     return JSON.stringify(patch, null, 2);
+  }
+
+  if (mode === "json_schema"){
+    return JSON.stringify(generateJsonSchema(currentTemplateName), null, 2);
+  }
+  if (mode === "json_schema_and_json"){
+    const sj = JSON.stringify(generateJsonSchema(currentTemplateName), null, 2);
+    return "JSON_SCHEMA:\n" + sj + "\n\nJSON:\n" + json;
   }
 
   if (mode === "prompt_only") return (mp || "").trim();
@@ -2828,6 +3580,7 @@ $("clearRunsBtn").onclick = ()=>{
 
     $("applyPresetBtn").onclick=()=>{
       applyPresetFromSelection();
+      baseData = deepClone(currentData);
       renderStep2(); renderStep3(); renderStep4();
       refreshOutput();
       toast("Applied preset + generated output", "ok", ($("presetSelect").value||"").replace(/^.*:/,""));
@@ -3119,9 +3872,20 @@ if (parsedJson){
       const coercions = coerceTypesInPlace(parsed);
 
       currentData = parsed;
+      ensureDefaultsForV1(currentData);
+      baseData = deepClone(currentData);
+      try{ ensureDefaultsForV1(baseData); }catch(_){ }
       currentData.meta = currentData.meta || {};
       currentData.meta.app_name = APP_NAME;
       currentData.meta.schema_version = APP_VERSION;
+      currentData.meta.schema_id = currentData.meta.schema_id || SCHEMA_ID_V1;
+
+      // sync switch UI
+      if ($("refSwitch")){
+        const on = !!getByPath(currentData, "references.images_included");
+        $("refSwitch").classList.toggle("on", on);
+        $("refSwitch").setAttribute("aria-checked", on ? "true" : "false");
+      }
 
       renderStep2(); renderStep3(); renderStep4();
       refreshOutput();
@@ -3142,25 +3906,63 @@ if (parsedJson){
 }
 
     function exportBundle(){
+      // Bundle format: promptforge_ris_bundle@1
+      // Includes: app state, current doc, baseline (baseData), user presets, and run history.
+      const step0 = {
+        imageType: $("imageTypeSelect")?.value || "Portrait Photography",
+        customTypeName: $("customImageTypeName")?.value || "",
+        customTypePrompt: $("customImageTypePrompt")?.value || "",
+        name: $("step0Name")?.value || "",
+        purpose: $("step0Purpose")?.value || "",
+        prompt: $("step0Prompt")?.value || "",
+        json: $("step0Json")?.value || "",
+        merged: $("mergedOut")?.textContent || ""
+      };
+
+      // Ensure baseline + doc include v1 defaults for round-trip stability
+      try { ensureDefaultsForV1(currentData); } catch(_){}
+      try { ensureDefaultsForV1(baseData); } catch(_){}
+
       const bundle = {
-        meta: { app_name: APP_NAME, schema_version: APP_VERSION, exported_at: new Date().toISOString() },
+        meta: {
+          app_name: APP_NAME,
+          schema_version: APP_VERSION,
+          schema_id: SCHEMA_ID_V1,
+          bundle_format: "promptforge_ris_bundle@1",
+          exported_at: new Date().toISOString()
+        },
         state: {
           template: currentTemplateName,
+          preset_select: $("presetSelect")?.value || "builtin:— None —",
+
           include_master_prompt: includeMaster,
-          output_mode: $("outputMode").value,
+          output_mode: $("outputMode")?.value || "prompt_pack",
+
           expert_unlocked: expertUnlocked,
           god_unlocked: godUnlocked,
+
           save_as_json: saveAsJson,
-          filename: $("filenameInput").value || "",
+          filename: $("filenameInput")?.value || "",
+
           chat_name: chatName,
           purpose: purpose,
+
           step0_inject: step0Inject,
           step0_detect: step0Detect,
+          step0: step0,
+
+          show_only_modified: showOnlyModified,
+          auto_save_runs: autoSaveRuns,
+          strict_validation: strictValidation,
+
           step_open: getStepOpenState()
         },
         current_data: currentData,
-        user_presets: loadUserPresets()
+        base_data: baseData,
+        user_presets: loadUserPresets(),
+        runs: loadRuns()
       };
+
       const blob = new Blob([JSON.stringify(bundle,null,2)], {type:"application/json"});
       const a=document.createElement("a");
       a.href = URL.createObjectURL(blob);
@@ -3179,27 +3981,48 @@ if (parsedJson){
           const txt = await file.text();
           const bundle = JSON.parse(txt);
 
-          if (!bundle?.meta?.schema_version){
-            toast("Import failed", "err", "Missing meta.schema_version");
+          // Basic sanity
+          const fmt = bundle?.meta?.bundle_format || "";
+          const sv = bundle?.meta?.schema_version || bundle?.meta?.app_version || "";
+          if (!sv && !bundle?.current_data){
+            toast("Import failed", "err", "Missing bundle data");
             return;
           }
-          if (Array.isArray(bundle.user_presets)) saveUserPresets(bundle.user_presets);
+          if (fmt && fmt !== "promptforge_ris_bundle@1"){
+            toast("Import failed", "err", "Unsupported bundle_format");
+            return;
+          }
 
+          // Replace local user presets + runs (round-trip accurate)
+          if (Array.isArray(bundle.user_presets)) saveUserPresets(bundle.user_presets);
+          if (Array.isArray(bundle.runs)){
+            // cap defensively
+            const capped = bundle.runs.slice(0, 30);
+            saveRuns(capped);
+            renderRunsDrawer();
+          }
+
+          // Template
           if (bundle.state?.template && TEMPLATE_BASES[bundle.state.template]) currentTemplateName = bundle.state.template;
+
+          // Core flags
           includeMaster = !!bundle.state?.include_master_prompt;
           $("outputMode").value = bundle.state?.output_mode || "prompt_pack";
           expertUnlocked = !!bundle.state?.expert_unlocked;
           godUnlocked = !!bundle.state?.god_unlocked;
 
+          // Save-as-JSON
           saveAsJson = !!bundle.state?.save_as_json;
           $("filenameInput").value = bundle.state?.filename || "";
           setSaveSwitch(saveAsJson);
 
+          // Name/Purpose
           chatName = bundle.state?.chat_name || "";
           purpose = bundle.state?.purpose || "";
           $("chatNameInput").value = chatName;
           $("purposeInput").value = purpose;
 
+          // Step 0 toggles
           step0Inject = bundle.state?.step0_inject !== undefined ? !!bundle.state.step0_inject : true;
           $("injectSwitch").classList.toggle("on", step0Inject);
           $("injectSwitch").setAttribute("aria-checked", step0Inject ? "true" : "false");
@@ -3208,13 +4031,69 @@ if (parsedJson){
           $("detectSwitch").classList.toggle("on", step0Detect);
           $("detectSwitch").setAttribute("aria-checked", step0Detect ? "true" : "false");
 
+          // UI workflow toggles
+          showOnlyModified = !!bundle.state?.show_only_modified;
+          autoSaveRuns = !!bundle.state?.auto_save_runs;
+          strictValidation = bundle.state?.strict_validation !== undefined ? !!bundle.state.strict_validation : true;
+
+          if ($("diffSwitch")) {
+            $("diffSwitch").classList.toggle("on", showOnlyModified);
+            $("diffSwitch").setAttribute("aria-checked", showOnlyModified ? "true" : "false");
+          }
+          if ($("autoSaveSwitch")) {
+            $("autoSaveSwitch").classList.toggle("on", autoSaveRuns);
+            $("autoSaveSwitch").setAttribute("aria-checked", autoSaveRuns ? "true" : "false");
+          }
+          if ($("strictSwitch")) {
+            $("strictSwitch").classList.toggle("on", strictValidation);
+            $("strictSwitch").setAttribute("aria-checked", strictValidation ? "true" : "false");
+          }
+
+          // Restore doc + baseline (prefer bundle-provided baseline; else baseline = imported doc)
           if (bundle.current_data && typeof bundle.current_data === "object") currentData = bundle.current_data;
-          baseData = deepClone(TEMPLATE_BASES[currentTemplateName]);
+          ensureDefaultsForV1(currentData);
+
+          if (bundle.base_data && typeof bundle.base_data === "object") baseData = bundle.base_data;
+          else baseData = deepClone(currentData);
+          ensureDefaultsForV1(baseData);
+
+          // Rebuild template base if needed
+          if (!TEMPLATE_BASES[currentTemplateName]) currentTemplateName = "ChatGPT Optimized";
 
           $("templateSelect").value = currentTemplateName;
           $("templateDesc").textContent = TEMPLATE_INFO[currentTemplateName] || "";
           setMasterSwitch(includeMaster);
+
+          // Presets must be populated after restoring user presets
           populatePresets();
+          const presetVal = bundle.state?.preset_select || "builtin:— None —";
+          // Only set if it exists in options; else default.
+          const hasOpt = [...$("presetSelect").options].some(o=>o.value===presetVal);
+          $("presetSelect").value = hasOpt ? presetVal : "builtin:— None —";
+
+          // Restore Step 0 fields
+          const s0 = bundle.state?.step0;
+          if (s0){
+            $("imageTypeSelect").value = s0.imageType || "Portrait Photography";
+            $("customImageTypeName").value = s0.customTypeName || "";
+            $("customImageTypePrompt").value = s0.customTypePrompt || "";
+            $("step0Name").value = s0.name || "";
+            $("step0Purpose").value = s0.purpose || "";
+            $("step0Prompt").value = s0.prompt || "";
+            $("step0Json").value = s0.json || "";
+            $("mergedOut").textContent = s0.merged || "";
+            const isCustom = $("imageTypeSelect").value === "Custom";
+            $("customTypeRow").style.display = isCustom ? "grid" : "none";
+            $("customPromptRow").style.display = isCustom ? "grid" : "none";
+          }
+
+          // Sync references switch
+          if ($("refSwitch")){
+            const on = !!getByPath(currentData, "references.images_included");
+            $("refSwitch").classList.toggle("on", on);
+            $("refSwitch").setAttribute("aria-checked", on ? "true" : "false");
+          }
+
           refreshStep4Visibility();
           renderStep2(); renderStep3(); renderStep4();
           refreshOutput();
@@ -3232,11 +4111,6 @@ if (parsedJson){
       };
       fi.click();
     }
-
-    $("exportJSONBtn").onclick=()=>{ closeDrawer(); exportJSONFile(); };
-    $("importJSONBtn").onclick=()=>{ closeDrawer(); importJSONFileFromPicker(); };
-    $("exportBundleBtn").onclick=()=>{ closeDrawer(); exportBundle(); };
-    $("importBundleBtn").onclick=()=>{ closeDrawer(); importBundleFromPicker(); };
 
     /* ---------- Resets ---------- */
     function resetToBase(){
@@ -3324,10 +4198,13 @@ if (parsedJson){
           template: currentTemplateName,
           includeMaster,
           outputMode: $("outputMode").value,
+          presetSelect: $("presetSelect").value || "builtin:— None —",
+          baseData,
           expertUnlocked,
           godUnlocked,
           showOnlyModified,
           autoSaveRuns,
+          strictValidation,
           currentData,
           step_open: getStepOpenState(),
           saveAsJson,
@@ -3353,7 +4230,16 @@ if (parsedJson){
 
     function restoreState(){
       try{
-        const raw = localStorage.getItem(LS_STATE);
+        let raw = localStorage.getItem(LS_STATE);
+        if (!raw){
+          // v0.8.x migration
+          raw = localStorage.getItem("promptforge_ris_state_v080");
+          if (!raw){
+            // v0.7.x migration
+            raw = localStorage.getItem("promptforge_ris_state_v070");
+          }
+          if (raw) localStorage.setItem(LS_STATE, raw);
+        }
         if (!raw) return false;
         const s = JSON.parse(raw);
         if (!s || !s.template || !TEMPLATE_BASES[s.template]) return false;
@@ -3365,6 +4251,8 @@ if (parsedJson){
         showOnlyModified = !!s.showOnlyModified;
         autoSaveRuns = !!s.autoSaveRuns;
 
+        strictValidation = s.strictValidation !== undefined ? !!s.strictValidation : true;
+
         $("outputMode").value = s.outputMode || "prompt_pack";
         if ($("diffSwitch")) {
           $("diffSwitch").classList.toggle("on", showOnlyModified);
@@ -3374,8 +4262,20 @@ if (parsedJson){
           $("autoSaveSwitch").classList.toggle("on", autoSaveRuns);
           $("autoSaveSwitch").setAttribute("aria-checked", autoSaveRuns ? "true" : "false");
         }
+
+        if ($("strictSwitch")) {
+          $("strictSwitch").classList.toggle("on", strictValidation);
+          $("strictSwitch").setAttribute("aria-checked", strictValidation ? "true" : "false");
+        }
         if (s.currentData && typeof s.currentData === "object") currentData = s.currentData;
-        baseData = deepClone(TEMPLATE_BASES[currentTemplateName]);
+        ensureDefaultsForV1(currentData);
+        if ($("refSwitch")) {
+          const ri = !!getByPath(currentData, "references.images_included");
+          $("refSwitch").classList.toggle("on", ri);
+          $("refSwitch").setAttribute("aria-checked", ri ? "true" : "false");
+        }
+        baseData = (s.baseData && typeof s.baseData === "object") ? s.baseData : deepClone(TEMPLATE_BASES[currentTemplateName]);
+        try{ ensureDefaultsForV1(baseData); }catch(_){ }
 
         saveAsJson = !!s.saveAsJson;
         $("filenameInput").value = s.filename || "";
@@ -3415,6 +4315,11 @@ if (parsedJson){
         }
 
         populatePresets();
+        if (s.presetSelect){
+          const pv = String(s.presetSelect);
+          const hasOpt = [...$("presetSelect").options].some(o=>o.value===pv);
+          $("presetSelect").value = hasOpt ? pv : "builtin:— None —";
+        }
         refreshStep4Visibility();
         renderStep2(); renderStep3(); renderStep4();
         refreshOutput();
@@ -3434,13 +4339,30 @@ if (parsedJson){
     $("importJSONBtn").onclick=()=>{ closeDrawer(); importJSONFileFromPicker(); };
     $("exportJSONBtn").onclick=()=>{ closeDrawer(); exportJSONFile(); };
 
+    // Schema / macros / sweep
+    if ($("copySchemaBtn")) $("copySchemaBtn").onclick=()=>{ closeDrawer(); copySchemaToClipboard(); };
+    if ($("saveSchemaBtn")) $("saveSchemaBtn").onclick=()=>{ closeDrawer(); downloadSchemaFile(); };
+    if ($("validateNowBtn")) $("validateNowBtn").onclick=()=>{ closeDrawer(); validateNow(); };
+
+    if ($("macroHandsBtn")) $("macroHandsBtn").onclick=()=> macroHandsSafe();
+    if ($("macroNoTextBtn")) $("macroNoTextBtn").onclick=()=> macroNoTextStrict();
+    if ($("macroSkinBtn")) $("macroSkinBtn").onclick=()=> macroSkinRealism();
+    if ($("macroIdentityBtn")) $("macroIdentityBtn").onclick=()=> macroIdentityLock();
+
+    if ($("sweepRunBtn")) $("sweepRunBtn").onclick=()=> runSweep();
+    if ($("sweepClearBtn")) $("sweepClearBtn").onclick=()=> clearSweep();
+
     /* ---------- Init ---------- */
     function init(){
       renderChangelog();
-      Object.values(TEMPLATE_BASES).forEach(t => ensureMetaForAllLeafPaths(t));
+      Object.values(TEMPLATE_BASES).forEach(t => { ensureMetaForAllLeafPaths(t); ensureDefaultsForV1(t); });
 
       populateTemplates();
       populatePresets();
+
+      if ($("schemaIdLabel")) $("schemaIdLabel").textContent = SCHEMA_ID_V1;
+      renderSchemaPathList();
+      renderSweepResults([]);
 
       $("templateSelect").value = currentTemplateName;
       $("presetSelect").value = "builtin:— None —";
