@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>PromptForge RIS v1.1.1 (Single-file)</title>
+  <title>PromptForge RIS v1.1.2 (Single-file)</title>
   <style>
 
     :root{
@@ -329,9 +329,10 @@
   <header>
     <div class="headrow">
       <div class="titlewrap">
-        <h1>PromptForge RIS v1.1.1 (Offline)</h1>
+        <h1>PromptForge RIS v1.1.2 (Offline)</h1>
         <div class="subtitle">PromptForge, Regenerative Image System • Brave/Firefox compatible</div>
       </div>
+      <span id="diagBadgeHost" class="pill small" style="display:none;margin-right:8px;align-items:center;gap:6px"></span>
       <button class="btn small iconBtn" id="themeToggleBtn" title="Toggle theme">☀</button>
     </div>
   </header>
@@ -788,7 +789,7 @@
 
   <script>
     /* =========================================================
-      PromptForge RIS v1.1.1 (Single-file)
+      PromptForge RIS v1.1.2 (Single-file)
       USER_VISIBLE_CHANGES:
       - Step 0 “Merge & Seed”: Name + Purpose + Prompt + JSON merge + copy + upload
       - Step 0: Inject toggle + Detect template toggle
@@ -803,7 +804,7 @@
     ========================================================= */
 
     const APP_NAME = "PromptForge RIS";
-    const APP_VERSION = "v1.1.1-singlefile";
+    const APP_VERSION = "v1.1.2-singlefile";
 
     const LS_KEY = "promptforge_ris_user_presets_v110";
     const LS_STATE = "promptforge_ris_state_v110";
@@ -840,7 +841,7 @@ function applyTheme(mode, {persist=true, quiet=false}={}){
 
   if (persist){
     try{ localStorage.setItem(LS_THEME, themeMode); }catch(_){}
-    saveState();
+    try{ if (typeof saveState === "function") saveState(); }catch(e){ __PF_DIAG.add("theme/saveState", e); }
   }
   if (!quiet) toast(`Theme: ${themeMode} (${effective})`, "ok", "Appearance");
 }
@@ -858,12 +859,103 @@ if (MQL_DARK && MQL_DARK.addEventListener){
     const SCHEMA_DRAFT = "https://json-schema.org/draft/2020-12/schema";
 
     /* ---------- DOM helpers ---------- */
-    const $ = (id)=>document.getElementById(id);
-    const deepClone = (o)=>JSON.parse(JSON.stringify(o));
+    const __NULL_EL = new Proxy({},{
+  get(_t,p){
+    if(p==="style") return {};
+    if(p==="classList") return {add(){},remove(){},toggle(){},contains(){return false;}};
+    if(p==="appendChild") return ()=>{};
+    if(p==="removeChild") return ()=>{};
+    if(p==="querySelector") return ()=>null;
+    if(p==="querySelectorAll") return ()=>[];
+    if(p==="setAttribute") return ()=>{};
+    if(p==="removeAttribute") return ()=>{};
+    if(p==="addEventListener") return ()=>{};
+    if(p==="removeEventListener") return ()=>{};
+    if(p==="focus") return ()=>{};
+    if(p==="scrollIntoView") return ()=>{};
+    return undefined;
+  },
+  set(_t,_p,_v){ return true; }
+});
+const $ = (id)=>document.getElementById(id) || __NULL_EL;
+    /* ---------- Diagnostics / Safe Boot ---------- */
+const __PF_DIAG = {
+  errors: [],
+  add(kind, err){
+    const msg = (err && (err.stack || err.message)) ? (err.stack || err.message) : String(err);
+    const rec = {ts: new Date().toISOString(), kind, msg};
+    this.errors.push(rec);
+    if (this.errors.length > 50) this.errors.shift();
+    try{ renderDiagBadge(); }catch(_){}
+    try{ renderDiagPanel(); }catch(_){}
+  }
+};
+
+function __safeCall(name, fn){ try{ return fn(); }catch(e){ __PF_DIAG.add(name, e); return null; } }
+
+function ensureDiagPanel(){
+  if (document.getElementById("diagPanel")) return;
+  const wrap = document.createElement("div");
+  wrap.id = "diagPanel";
+  wrap.style.cssText = "position:fixed;left:12px;right:12px;bottom:76px;max-height:42vh;overflow:auto;z-index:9999;display:none;border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:12px;box-shadow:var(--shadow);padding:12px";
+  wrap.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px">
+      <div style="font-weight:800">Diagnostics</div>
+      <div style="display:flex;gap:8px">
+        <button class="pill small" id="diagCopyBtn" type="button">Copy</button>
+        <button class="pill small" id="diagCloseBtn" type="button">Close</button>
+      </div>
+    </div>
+    <pre id="diagPre" style="white-space:pre-wrap;font-size:12px;line-height:1.35;margin:0"></pre>
+  `;
+  document.body.appendChild(wrap);
+  (document.getElementById("diagCloseBtn")||__NULL_EL).onclick = ()=>{ wrap.style.display="none"; };
+  (document.getElementById("diagCopyBtn")||__NULL_EL).onclick = ()=>{
+    const txt = (document.getElementById("diagPre")||__NULL_EL).textContent || "";
+    try{ navigator.clipboard.writeText(txt); }catch(_){}
+  };
+}
+
+function renderDiagBadge(){
+  // Add a tiny badge into the header if present
+  const host = document.getElementById("diagBadgeHost");
+  if (!host) return;
+  const n = __PF_DIAG.errors.length;
+  host.textContent = n ? `⚠ ${n}` : "";
+  host.style.display = n ? "inline-flex" : "none";
+}
+function renderDiagPanel(){
+  ensureDiagPanel();
+  const pre = document.getElementById("diagPre");
+  if (!pre) return;
+  const lines = __PF_DIAG.errors.slice(-10).map(e=>`[${e.ts}] ${e.kind}\n${e.msg}`).join("\n\n");
+  pre.textContent = lines || "No errors captured.";
+}
+
+window.addEventListener("error", (ev)=>{
+  __PF_DIAG.add("error", ev.error || (ev.message + " @ " + (ev.filename||"") + ":" + (ev.lineno||"")));
+});
+window.addEventListener("unhandledrejection", (ev)=>{
+  __PF_DIAG.add("unhandledrejection", ev.reason || "Unhandled rejection");
+});
+
+// Safe toast host fallback: never allow toast() to crash init
+function __ensureToastHost(){
+  let h = document.getElementById("toastHost");
+  if (!h){
+    h = document.createElement("div");
+    h.id = "toastHost";
+    h.className = "toastHost";
+    document.body.appendChild(h);
+  }
+  return h;
+}
+
+const deepClone = (o)=>JSON.parse(JSON.stringify(o));
     const escapeHtml = (s)=>String(s).replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
 
     /* ---------- Toasts (2.5s) ---------- */
-    const toastHost = $("toastHost");
+    const toastHost = __ensureToastHost();
     function toast(message, kind="ok", tag=""){
       const el = document.createElement("div");
       el.className = "toast" + (kind === "err" ? " err" : "");
@@ -4738,7 +4830,22 @@ if (parsedJson){
       toast(restored ? "Restored session" : "Initialized", "ok", APP_VERSION);
     }
 
+
+function safeBoot(){
+  try{
     init();
+  }catch(err){
+    __PF_DIAG.add("boot", err);
+    try{
+      ensureDiagPanel();
+      renderDiagPanel();
+      const p = document.getElementById("diagPanel");
+      if (p) p.style.display = "block";
+    }catch(_){}
+  }
+}
+
+    safeBoot();
   </script>
 </body>
 </html>
