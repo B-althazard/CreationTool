@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>PromptForge RIS v0.7.0 (Single-file)</title>
+  <title>PromptForge RIS v0.8.0 (Single-file)</title>
   <style>
     :root{
       --bg:#f6f7f9; --card:#fff; --text:#111; --muted:#667085;
@@ -300,7 +300,7 @@
   <header>
     <div class="headrow">
       <div class="titlewrap">
-        <h1>PromptForge RIS v0.7.0 (Offline)</h1>
+        <h1>PromptForge RIS v0.8.0 (Offline)</h1>
         <div class="subtitle">PromptForge, Regenerative Image System • Brave/Firefox compatible</div>
       </div>
     </div>
@@ -341,9 +341,28 @@
           <button class="btn" id="savePresetBtn">Save Preset As…</button>
         </div>
       </div>
-    </details>
+</details>
 
-    <details id="drawerResets">
+<details id="drawerRuns">
+  <summary>Runs</summary>
+  <div class="dsec">
+    <div class="btnrow">
+      <button class="btn" id="exportRunsBtn">Export Runs</button>
+      <button class="btn danger" id="clearRunsBtn">Clear Runs</button>
+    </div>
+    <div class="toggleRow" style="margin-top:10px">
+      <div>
+        <b>Auto-save on Generate</b>
+        <div class="help-inline">Automatically saves a run snapshot each time you press Generate.</div>
+      </div>
+      <div class="switch" id="autoSaveSwitch" role="switch" aria-checked="false"><div class="knob"></div></div>
+    </div>
+    <div class="hr"></div>
+    <div class="small" id="runsBody"></div>
+  </div>
+</details>
+
+<details id="drawerResets">
       <summary>Resets</summary>
       <div class="dsec">
         <div class="btnrow">
@@ -483,12 +502,15 @@
         <div class="row grid2">
           <label>Output mode</label>
           <select id="outputMode">
-            <option value="exec_json">Executable JSON</option>
-            <option value="full_json">Full JSON</option>
-            <option value="prompt_only">Prompt Only</option>
-            <option value="prompt_and_json">Prompt & JSON</option>
-            <option value="debug">Debug</option>
-          </select>
+  <option value="prompt_pack">Prompt Pack (ChatGPT Image)</option>
+  <option value="prompt_pack_and_json">Prompt Pack + JSON</option>
+  <option value="full_json">Full JSON</option>
+  <option value="json_patch">JSON Patch (diff)</option>
+  <option value="exec_json">Executable JSON (ChatGPT)</option>
+  <option value="prompt_only">Master Prompt (legacy)</option>
+  <option value="prompt_and_json">Master Prompt + JSON</option>
+  <option value="debug">Debug</option>
+</select>
         </div>
 
         <div class="outActions">
@@ -508,6 +530,15 @@
       </summary>
       <div class="section">
         <div class="help-inline">Quick edits. Categories accordion (one open at a time). Field “More” shows value-specific guidance.</div>
+<div class="row">
+  <div class="toggleRow">
+    <div>
+      <b>Show only modified fields</b>
+      <div class="help-inline">ON: show only fields that differ from the current template base.</div>
+    </div>
+    <div class="switch" id="diffSwitch" role="switch" aria-checked="false"><div class="knob"></div></div>
+  </div>
+</div>
         <div id="commonFields"></div>
 
         <div class="outActions">
@@ -565,11 +596,16 @@
         <span class="sumRight" id="outHint">exec_json</span>
       </summary>
       <div class="section">
+        <div id="lintBox" class="suggest" style="display:none"></div>
         <div class="codewrap">
           <pre><code id="outMain">{}</code></pre>
-        </div>
+        </div
 
         <div class="outActions">
+  <button class="btn primary" id="copyPackBtn">Copy Prompt Pack</button>
+  <button class="btn" id="saveRunBtn">Save to History</button>
+</div>
+<div class="outActions">
           <button class="btn" id="expandBtn">Expand</button>
           <div style="flex:1"></div>
           <div class="mini">Save as JSON:</div>
@@ -610,7 +646,7 @@
 
   <script>
     /* =========================================================
-      PromptForge RIS v0.7.0 (Single-file)
+      PromptForge RIS v0.8.0 (Single-file)
       USER_VISIBLE_CHANGES:
       - Step 0 “Merge & Seed”: Name + Purpose + Prompt + JSON merge + copy + upload
       - Step 0: Inject toggle + Detect template toggle
@@ -625,10 +661,11 @@
     ========================================================= */
 
     const APP_NAME = "PromptForge RIS";
-    const APP_VERSION = "v0.7.0-singlefile";
+    const APP_VERSION = "v0.8.0-singlefile";
 
-    const LS_KEY = "promptforge_ris_user_presets_v070";
-    const LS_STATE = "promptforge_ris_state_v070";
+    const LS_KEY = "promptforge_ris_user_presets_v080";
+    const LS_STATE = "promptforge_ris_state_v080";
+    const LS_RUNS = "promptforge_ris_runs_v080";
     const LS_LAST_SEEN = "promptforge_ris_last_seen_version";
 
     /* ---------- DOM helpers ---------- */
@@ -675,25 +712,41 @@
 
     /* ---------- Changelog ---------- */
     const CHANGELOG = [
-      {
-        version: "v0.7.0",
-        user_visible_changes: [
-          "Step 0: Merge & Seed (Name/Purpose/Prompt/JSON), Upload JSON, Copy Merged OUTPUT.",
-          "Step 0: Inject into current state + Detect template from JSON toggles.",
-          "Executable JSON header adds Name + Purpose (used as chat name / intent).",
-          "Dropdown option descriptors (e.g., 4:5 — Instagram).",
-          "Field “More” now shows selected-value description, recommendations, most common, reasoning."
-        ],
-        non_user_visible_changes: [
-          "Enum option metadata model (short/long/recommendations/most_common/reasoning).",
-          "Template detection heuristic for JSON ingest.",
-          "Standardized meta fields: meta.app_name/meta.schema_version written on template apply."
-        ]
-      }
-    ];
+  {
+    version: "v0.8.0",
+    user_visible_changes: [
+      "New default output: Prompt Pack optimized for ChatGPT built-in image generation.",
+      "Output: Copy Prompt Pack + Save to History buttons, plus lint panel for conflicts/quality traps.",
+      "Expert UI: Show all schema fields (even if absent) + optional “Show only modified fields” filter.",
+      "Runs drawer: local run history with export/clear; load prior JSON snapshots.",
+      "JSON import now validates + quarantines unknown fields; safer merges throughout."
+    ],
+    non_user_visible_changes: [
+      "Added Prompt Pack compiler (sectioned prompt, negative block, deterministic ordering).",
+      "Added lint engine + JSON Patch diff export for reproducible edits.",
+      "Safe deep-merge (prototype pollution hardened) and import quarantine.",
+      "Schema path registry built from template union; inferred field types used for controls."
+    ]
+  },
+  {
+    version: "v0.7.0",
+    user_visible_changes: [
+      "Step 0: Merge & Seed (Name/Purpose/Prompt/JSON), Upload JSON, Copy Merged OUTPUT.",
+      "Step 0: Inject into current state + Detect template from JSON toggles.",
+      "Executable JSON header adds Name + Purpose (used as chat name / intent).",
+      "Dropdown option descriptors (e.g., 4:5 — Instagram).",
+      "Field “More” now shows selected-value description, recommendations, most common, reasoning."
+    ],
+    non_user_visible_changes: [
+      "Enum option metadata model (short/long/recommendations/most_common/reasoning).",
+      "Template detection heuristic for JSON ingest.",
+      "Standardized meta fields: meta.app_name/meta.schema_version written on template apply."
+    ]
+  }
+];
 
     function renderChangelog(){
-      const cur = CHANGELOG.find(x => x.version === "v0.7.0") || CHANGELOG[0];
+      const cur = CHANGELOG[0];
       $("changelogBody").innerHTML = `
         <div class="small"><b>${escapeHtml(APP_NAME)} ${escapeHtml(cur.version)}</b></div>
         <div class="hr"></div>
@@ -715,7 +768,7 @@
           localStorage.setItem(LS_LAST_SEEN, APP_VERSION);
           openDrawer();
           $("drawerChangelog").open = true;
-          toast("Changelog updated", "ok", "v0.7.0");
+          toast("Changelog updated", "ok", "v0.8.0");
         }
       }catch(_){}
     }
@@ -737,16 +790,27 @@
       const a2 = getByPath(obj, path);
       if (!a2.includes(item)) a2.push(item);
     }
-    function deepMerge(target, source){
-      for (const k of Object.keys(source)){
-        if (source[k] && typeof source[k] === "object" && !Array.isArray(source[k])){
-          if (!target[k] || typeof target[k] !== "object") target[k] = {};
-          deepMerge(target[k], source[k]);
-        } else {
-          target[k] = source[k];
-        }
-      }
+    const BLOCKED_KEYS = new Set(["__proto__","prototype","constructor"]);
+function isPlainObject(x){ return !!x && typeof x === "object" && !Array.isArray(x); }
+
+// Safe deep merge (hardened against prototype pollution). Arrays replace by default.
+function deepMerge(target, source){
+  if (!isPlainObject(target) || !isPlainObject(source)) return;
+  for (const k of Object.keys(source)){
+    if (BLOCKED_KEYS.has(k)) continue;
+    const sv = source[k];
+    if (Array.isArray(sv)){
+      target[k] = sv.slice();
+      continue;
     }
+    if (isPlainObject(sv)){
+      if (!isPlainObject(target[k])) target[k] = {};
+      deepMerge(target[k], sv);
+      continue;
+    }
+    target[k] = sv;
+  }
+}
 
     /* ---------- Strip empties ---------- */
     function stripEmpties(value){
@@ -765,6 +829,71 @@
       }
       return (value === "" || value === null || value === undefined) ? undefined : value;
     }
+
+
+/* ---------- Deterministic serialization + ids ---------- */
+function stableStringify(value){
+  const seen = new WeakSet();
+  const helper = (v)=>{
+    if (v === null || v === undefined) return v;
+    if (typeof v !== "object") return v;
+    if (seen.has(v)) return "[Circular]";
+    seen.add(v);
+    if (Array.isArray(v)) return v.map(helper);
+    const out = {};
+    Object.keys(v).sort().forEach(k=>{
+      if (BLOCKED_KEYS && BLOCKED_KEYS.has(k)) return;
+      out[k] = helper(v[k]);
+    });
+    return out;
+  };
+  return JSON.stringify(helper(value));
+}
+
+function fnv1a32(str){
+  // Deterministic non-crypto hash (prompt-only reproducibility; NOT a seed).
+  let h = 0x811c9dc5;
+  for (let i=0;i<str.length;i++){
+    h ^= str.charCodeAt(i);
+    h = (h + ((h<<1) + (h<<4) + (h<<7) + (h<<8) + (h<<24))) >>> 0;
+  }
+  return ("0000000" + h.toString(16)).slice(-8);
+}
+
+function uuidv4(){
+  // RFC4122 v4-ish. Uses crypto if available.
+  const g = (n)=>Array.from({length:n}, ()=>Math.floor(Math.random()*256));
+  let bytes;
+  if (globalThis.crypto?.getRandomValues){
+    bytes = new Uint8Array(16);
+    globalThis.crypto.getRandomValues(bytes);
+  } else {
+    bytes = Uint8Array.from(g(16));
+  }
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = [...bytes].map(b=>b.toString(16).padStart(2,"0")).join("");
+  return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+}
+
+function deepEqual(a,b){
+  // Good-enough structural equality for this tool (strings/arrays/objects)
+  return stableStringify(a) === stableStringify(b);
+}
+
+function uniqNorm(arr){
+  const out = [];
+  const seen = new Set();
+  (arr||[]).forEach(x=>{
+    const s = String(x||"").trim();
+    if (!s) return;
+    const key = s.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(s);
+  });
+  return out;
+}
 
     /* ---------- Clipboard ---------- */
     async function copyToClipboard(text){
@@ -1226,18 +1355,477 @@
       }
     }
 
+/* ---------- Schema path registry (union of templates) ---------- */
+const SCHEMA_PATHS_BY_TEMPLATE = {};
+let ALL_SCHEMA_PATHS = [];
+const FIELD_TYPES = {}; // path -> "string"|"array"|"boolean"|"number"|"object"
+
+function inferSchemaRegistry(){
+  const union = new Set();
+  Object.keys(TEMPLATE_BASES).forEach(tname=>{
+    const paths = listLeafPaths(TEMPLATE_BASES[tname]).filter(p => p !== "prompt_output.master_prompt");
+    SCHEMA_PATHS_BY_TEMPLATE[tname] = paths.slice();
+    paths.forEach(p=> union.add(p));
+
+    // infer type from template values
+    paths.forEach(p=>{
+      const v = getByPath(TEMPLATE_BASES[tname], p);
+      let ty = Array.isArray(v) ? "array" : (typeof v);
+      if (v === null || v === undefined) ty = FIELD_TYPES[p] || "string";
+      if (ty === "object") ty = "object";
+      FIELD_TYPES[p] = FIELD_TYPES[p] || ty;
+    });
+  });
+
+  // Ensure compiler-owned fields exist in the registry
+  ["prompt_output.user_prefix","prompt_output.negative_prompt","prompt_output.directive"].forEach(p=> union.add(p));
+  union.add("meta.run_id");
+  union.add("meta.doc_hash");
+  union.add("meta.prompt_pack_hash");
+  ALL_SCHEMA_PATHS = [...union];
+
+  // backfill FIELD_META for any new fields (so expert mode can render them)
+  ALL_SCHEMA_PATHS.forEach(p=>{
+    if (!FIELD_META[p]){
+      const top = p.split(".")[0];
+      const map = {
+        meta:"Output & Prompt", prompt_profile:"Output & Prompt", output_specs:"Output & Prompt", prompt_output:"Output & Prompt",
+        composition:"Composition", subject:"Subject", identity:"Identity & Consistency", clothing:"Clothing", accessories:"Accessories",
+        lighting:"Lighting", background:"Background", camera:"Camera", style:"Style", mood:"Mood", constraints:"Constraints",
+        system_profile:"Ultra Elite: System", environment:"Ultra Elite: Environment", rendering:"Ultra Elite: Rendering", color_pipeline:"Ultra Elite: Color Pipeline"
+      };
+      FIELD_META[p] = { label: p, category: map[top] || "Output & Prompt", desc: "Advanced field. Use when you need fine-grained control.", suggestions:["(blank)"] };
+    }
+    if (!FIELD_META[p].type && FIELD_TYPES[p]) FIELD_META[p].type = FIELD_TYPES[p];
+  });
+}
+
+
+function buildAllowedPrefixSet(paths){
+  const set = new Set();
+  set.add(""); // root
+  (paths||[]).forEach(p=>{
+    const parts = String(p).split(".");
+    let cur = "";
+    for (const part of parts){
+      cur = cur ? `${cur}.${part}` : part;
+      set.add(cur);
+    }
+  });
+  return set;
+}
+
+function quarantineUnknownFields(doc, schemaPaths){
+  const allowedPrefixes = buildAllowedPrefixSet(schemaPaths);
+  const quarantine = {};
+  const walk = (obj, prefix)=>{
+    if (!isPlainObject(obj)) return;
+    for (const k of Object.keys(obj)){
+      if (BLOCKED_KEYS.has(k)){ delete obj[k]; continue; }
+      const p = prefix ? `${prefix}.${k}` : k;
+      if (!allowedPrefixes.has(p)){
+        quarantine[p] = obj[k];
+        delete obj[k];
+        continue;
+      }
+      const v = obj[k];
+      if (isPlainObject(v)) walk(v, p);
+      // arrays/primitives are leafs; OK if prefix allowed
+    }
+  };
+  walk(doc, "");
+  if (Object.keys(quarantine).length){
+    doc.meta = doc.meta || {};
+    doc.meta._quarantine = quarantine;
+  }
+  return quarantine;
+}
+
+function coerceTypesInPlace(doc){
+  const issues = [];
+  // Coerce known leaf paths where type is known
+  const paths = ALL_SCHEMA_PATHS || [];
+  paths.forEach(p=>{
+    const expected = FIELD_TYPES[p] || FIELD_META[p]?.type;
+    if (!expected) return;
+    const cur = getByPath(doc, p);
+    if (cur === undefined) return;
+
+    if (expected === "array" && typeof cur === "string"){
+      setByPath(doc, p, parseFreeformTokens(cur));
+      issues.push(`Coerced ${p} string -> array`);
+    }
+    if (expected === "boolean" && typeof cur === "string"){
+      const s = cur.toLowerCase().trim();
+      if (s === "true" || s === "false"){
+        setByPath(doc, p, s === "true");
+        issues.push(`Coerced ${p} string -> boolean`);
+      }
+    }
+  });
+  return issues;
+}
+
     /* ---------- Preset storage ---------- */
     function loadUserPresets(){
-      try{
-        const raw = localStorage.getItem(LS_KEY);
-        if (!raw) return [];
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-      }catch{ return []; }
+  try{
+    let raw = localStorage.getItem(LS_KEY);
+    if (!raw){
+      // v0.7.x migration
+      raw = localStorage.getItem("promptforge_ris_user_presets_v070");
+      if (raw) localStorage.setItem(LS_KEY, raw);
     }
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  }catch{ return []; }
+}
     function saveUserPresets(p){ localStorage.setItem(LS_KEY, JSON.stringify(p)); }
 
-    /* ---------- Assembler (unchanged) ---------- */
+/* ---------- Run history (localStorage) ---------- */
+function loadRuns(){
+  try{
+    const raw = localStorage.getItem(LS_RUNS);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  }catch{ return []; }
+}
+function saveRuns(runs){
+  localStorage.setItem(LS_RUNS, JSON.stringify(runs));
+}
+
+function addRun(record){
+  const runs = loadRuns();
+  runs.unshift(record);
+  // cap
+  while (runs.length > 30) runs.pop();
+  saveRuns(runs);
+  renderRunsDrawer();
+}
+
+function renderRunsDrawer(){
+  const el = $("runsBody");
+  if (!el) return;
+  const runs = loadRuns();
+  if (!runs.length){
+    el.innerHTML = `<div class="help-inline">No saved runs yet.</div>`;
+    return;
+  }
+  el.innerHTML = runs.map(r=>{
+    const ts = new Date(r.ts || Date.now()).toLocaleString();
+    const name = escapeHtml(r.name || "");
+    const tpl = escapeHtml(r.template || "");
+    const rid = escapeHtml(r.run_id || "");
+    const hash = escapeHtml(r.doc_hash || "");
+    return `
+      <div class="card" style="padding:10px; margin:10px 0;">
+        <div class="mini">${ts}</div>
+        <div><b>${name || "(no name)"}</b> <span class="chip">${tpl || "template?"}</span></div>
+        <div class="mini">Run-ID: ${rid} • Doc: ${hash}</div>
+        <div class="btnrow" style="margin-top:8px">
+          <button class="btn" data-act="load" data-id="${escapeHtml(r.id)}">Load</button>
+          <button class="btn" data-act="copy" data-id="${escapeHtml(r.id)}">Copy Pack</button>
+          <button class="btn" data-act="copyjson" data-id="${escapeHtml(r.id)}">Copy JSON</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  el.querySelectorAll("button[data-act]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.getAttribute("data-id");
+      const act = btn.getAttribute("data-act");
+      const runs = loadRuns();
+      const r = runs.find(x=>x.id===id);
+      if (!r) return;
+
+      if (act === "load"){
+        if (r.template && TEMPLATE_BASES[r.template]){
+          currentTemplateName = r.template;
+          baseData = deepClone(TEMPLATE_BASES[r.template]);
+          $("templateSelect").value = r.template;
+          $("templateDesc").textContent = TEMPLATE_INFO[r.template] || "";
+          refreshStep4Visibility();
+        }
+        currentData = deepClone(r.doc || {});
+        renderStep2(); renderStep3(); renderStep4();
+        refreshOutput();
+        saveState();
+        toast("Loaded run", "ok", r.run_id || "run");
+        return;
+      }
+
+      if (act === "copy"){
+        const ok = await copyToClipboard(String(r.prompt_pack || ""));
+        ok ? toast("Copied prompt pack", "ok", "Runs") : toast("Copy failed", "err", "Clipboard");
+        return;
+      }
+
+      if (act === "copyjson"){
+        const ok = await copyToClipboard(JSON.stringify(r.doc || {}, null, 2));
+        ok ? toast("Copied JSON", "ok", "Runs") : toast("Copy failed", "err", "Clipboard");
+        return;
+      }
+    };
+  });
+}
+
+
+/* ---------- Compiler (Prompt Pack + JSON Patch) ---------- */
+function isUltraDoc(data){
+  return !!(data?.system_profile || data?.environment || data?.rendering || data?.color_pipeline || data?.subject?.identity);
+}
+
+function parseFreeformTokens(text){
+  if (!text) return [];
+  return String(text)
+    .split(/[\n,]+/g)
+    .map(s=>s.trim())
+    .filter(Boolean);
+}
+
+function buildNegativeTokens(doc, mustIncludeArr, avoidArr){
+  const must = Array.isArray(mustIncludeArr) ? mustIncludeArr : [];
+  const avoid = Array.isArray(avoidArr) ? avoidArr : [];
+  const fromMust = must.filter(x=>/^\s*no\s+/i.test(String(x||""))).map(x=>String(x).trim());
+  const extra = parseFreeformTokens(doc?.prompt_output?.negative_prompt || "");
+  const baseline = [
+    "no text","no logos","no watermark","no watermarks","no signature","no captions","no subtitles"
+  ];
+  return uniqNorm([...baseline, ...fromMust, ...avoid, ...extra]);
+}
+
+function compilePromptPack(doc, ctx={}){
+  const lint = { errors:[], warnings:[], notes:[] };
+
+  const name = String(ctx.chatName ?? doc?.meta?.chat_name ?? "").trim();
+  const purposeText = String(ctx.purpose ?? doc?.meta?.purpose ?? "").trim();
+  const templateLabel = String(ctx.templateName ?? doc?.meta?.template_type ?? currentTemplateName ?? "").trim();
+  const runId = String(doc?.meta?.run_id ?? "").trim() || uuidv4();
+
+  const isUltra = isUltraDoc(doc);
+  const ar = doc?.output_specs?.aspect_ratio || doc?.render?.output?.aspect_ratio || "4:5";
+  const mode = doc?.prompt_profile?.mode || "photoreal";
+
+  const parts = [];
+
+  // Core
+  parts.push(`${mode} image`);
+  if (ar) parts.push(`aspect ratio ${ar}`);
+
+  // Subject + identity
+  if (isUltra){
+    const id = doc?.subject?.identity || {};
+    if (id.core_description) parts.push(id.core_description);
+    const fs = id.facial_structure || {};
+    const fsBits = ["face_shape","jawline","cheekbones","nose_shape","eye_shape","eyebrow_shape"].map(k=>fs[k]).filter(Boolean);
+    if (fsBits.length) parts.push(`facial structure: ${fsBits.join(", ")}`);
+    const sk = id.skin || {};
+    const skinBits = [sk.texture, sk.pores, sk.imperfections, sk.subsurface_scattering].filter(Boolean);
+    if (skinBits.length) parts.push(`skin: ${skinBits.join(", ")}`);
+    const hr = id.hair || {};
+    const hairBits = [hr.color, hr.style, hr.physics, hr.strand_detail, hr.density].filter(Boolean);
+    if (hairBits.length) parts.push(`hair: ${hairBits.join(", ")}`);
+    if (id.identity_lock) parts.push("strict identity lock");
+  } else {
+    const s = doc?.subject || {};
+    const demographics = [s.gender, s.age, (s.ethnicity && s.ethnicity !== "unspecified") ? s.ethnicity : ""].filter(Boolean).join(", ");
+    if (demographics) parts.push(demographics);
+    if (s.skin?.details) parts.push(s.skin.details);
+    if (s.face?.features) parts.push(s.face.features);
+    if (s.hair?.details) parts.push(s.hair.details);
+
+    const id = doc?.identity || {};
+    if (id.identity_strength) parts.push(`identity lock: ${id.identity_strength}`);
+    if (id.distinctive_features) parts.push(id.distinctive_features);
+    if (Array.isArray(id.do_not_change) && id.do_not_change.length) parts.push(`do not change: ${id.do_not_change.join(", ")}`);
+  }
+
+  // Clothing
+  if (isUltra){
+    const cl = doc?.subject?.clothing || {};
+    if (Array.isArray(cl.garments) && cl.garments.length) parts.push(`clothing: ${cl.garments.join(", ")}`);
+    if (Array.isArray(cl.materials) && cl.materials.length) parts.push(`materials: ${cl.materials.join(", ")}`);
+    if (cl.fabric_behavior) parts.push(cl.fabric_behavior);
+    if (cl.micro_detail) parts.push(cl.micro_detail);
+  } else {
+    const c = doc?.clothing || {};
+    const garments = [c.top, c.bottom, (c.outerwear && c.outerwear !== "none") ? c.outerwear : "", (c.dress && c.dress !== "none") ? c.dress : "", (c.footwear && c.footwear !== "none") ? c.footwear : ""].filter(Boolean);
+    if (garments.length) parts.push(`clothing: ${garments.join(", ")}`);
+    if (Array.isArray(c.materials) && c.materials.length) parts.push(`materials: ${c.materials.join(", ")}`);
+    if (c.notes) parts.push(c.notes);
+  }
+
+  // Composition
+  const comp = doc?.composition || {};
+  if (isUltra){
+    if (comp.framing) parts.push(comp.framing);
+    if (comp.rule_of_thirds) parts.push(comp.rule_of_thirds);
+    if (comp.spatial_depth) parts.push(comp.spatial_depth);
+    if (comp.visual_weight) parts.push(comp.visual_weight);
+  } else {
+    parts.push([comp.shot_type, comp.body_visibility, comp.framing].filter(Boolean).join(", "));
+    parts.push([comp.orientation, comp.subject_position, comp.camera_height, comp.camera_distance, comp.perspective].filter(Boolean).join(", "));
+    if (comp.background_blur_intent) parts.push(`background blur: ${comp.background_blur_intent}`);
+  }
+
+  // Environment / background
+  if (isUltra){
+    const env = doc?.environment || {};
+    const envBits = [env.location, env.architecture].filter(Boolean).join(", ");
+    if (envBits) parts.push(envBits);
+    if (env.atmosphere) parts.push(env.atmosphere);
+    if (env.physics_interaction) parts.push(env.physics_interaction);
+  } else {
+    const bg = doc?.background || {};
+    const bgBits = [bg.location_type, bg.scene].filter(Boolean).join(", ");
+    if (bgBits) parts.push(bgBits);
+    if (bg.palette) parts.push(`palette: ${bg.palette}`);
+  }
+
+  // Lighting
+  const light = doc?.lighting || {};
+  if (isUltra){
+    if (Array.isArray(light.sources) && light.sources.length) parts.push(`lighting: ${light.sources.join(", ")}`);
+    if (light.global_illumination) parts.push(light.global_illumination);
+    if (light.shadow_behavior) parts.push(light.shadow_behavior);
+    if (light.reflections) parts.push(light.reflections);
+    if (light.volumetrics) parts.push(light.volumetrics);
+  } else {
+    const lBits = [light.type, light.direction, light.quality, light.tone].filter(Boolean).join(", ");
+    if (lBits) parts.push(lBits);
+    if (light.notes) parts.push(light.notes);
+  }
+
+  // Camera + style/rendering
+  const cam = doc?.camera || {};
+  if (isUltra){
+    const camBits = [cam.model_simulation, cam.lens_model, cam.sensor_size].filter(Boolean).join(", ");
+    if (camBits) parts.push(camBits);
+    if (cam.focus_behavior) parts.push(cam.focus_behavior);
+    if (cam.optical_aberrations) parts.push(cam.optical_aberrations);
+    if (cam.exposure_pipeline) parts.push(cam.exposure_pipeline);
+
+    const r = doc?.rendering || {};
+    const rBits = [r.realism_level, r.material_model, r.texture_resolution].filter(Boolean).join(", ");
+    if (rBits) parts.push(rBits);
+    if (r.noise_profile) parts.push(r.noise_profile);
+    if (r.ray_tracing) parts.push(r.ray_tracing);
+    if (r.motion_blur) parts.push(r.motion_blur);
+
+    const cp = doc?.color_pipeline || {};
+    const cpBits = [cp.tone_mapping, cp.grading_profile, cp.dynamic_range].filter(Boolean).join(", ");
+    if (cpBits) parts.push(cpBits);
+  } else {
+    const camBits = [cam.photo_style, cam.focal_length, cam.depth_of_field, cam.exposure, cam.grain].filter(Boolean).join(", ");
+    if (camBits) parts.push(camBits);
+
+    const st = doc?.style || {};
+    const stBits = [st.genre, st.strength, st.realism_strength, st.color_grading, st.contrast, st.sharpness].filter(Boolean).join(", ");
+    if (stBits) parts.push(stBits);
+  }
+
+  if (doc?.mood) parts.push(`mood: ${doc.mood}`);
+
+  // Constraints + negatives
+  const must = Array.isArray(doc?.constraints?.must_include) ? doc.constraints.must_include : [];
+  const avoid = Array.isArray(doc?.constraints?.avoid) ? doc.constraints.avoid : [];
+
+  const mustLower = must.map(s=>String(s||"").toLowerCase());
+  ["no text","no logos","no watermarks"].forEach(x=>{
+    if (!mustLower.includes(x)) lint.warnings.push(`constraints.must_include missing “${x}”`);
+  });
+
+  const avoidLower = avoid.map(s=>String(s||"").toLowerCase());
+  ["extra fingers","warped hands","deformed anatomy"].forEach(x=>{
+    if (!avoidLower.includes(x)) lint.notes.push(`Consider adding to constraints.avoid: “${x}”`);
+  });
+
+  const framing = String(doc?.composition?.framing || "").toLowerCase();
+  const bv = String(doc?.composition?.body_visibility || "").toLowerCase();
+  if (bv.includes("full") && !framing.includes("toe") && !framing.includes("feet") && !framing.includes("shoes")) lint.warnings.push("Full-body requested but framing doesn't mention feet/shoes.");
+  if (framing.includes("hands") && !(avoidLower.includes("extra fingers") || avoidLower.includes("warped hands"))) lint.warnings.push("Framing asks for hands but constraints.avoid doesn't explicitly guard hands/fingers.");
+
+  const negative = buildNegativeTokens(doc, must, avoid);
+
+  const positive = uniqNorm(parts).join(", ").replace(/\s+/g, " ").trim();
+
+  const directive = String(doc?.prompt_output?.directive || "").trim() || "Generate 1 image. Output ONLY the image. No captions. No text/logos/watermarks.";
+
+  const docHash = fnv1a32(stableStringify(doc));
+  const packHash = fnv1a32(positive + "||" + negative.join("|"));
+
+  const promptPack = [
+    `[PROMPT_PACK • ${APP_NAME} ${APP_VERSION}]`,
+    `Name: ${name || "(none)"}`,
+    `Purpose: ${purposeText || "(none)"}`,
+    `Template: ${templateLabel || "(unknown)"}`,
+    `Run-ID: ${runId}`,
+    `Doc-Hash: ${docHash}`,
+    `Prompt-Hash: ${packHash}`,
+    "",
+    "INSTRUCTIONS:",
+    `- ${directive}`,
+    "",
+    "PROMPT (positive):",
+    positive || "(empty)",
+    "",
+    "NEGATIVE:",
+    negative.length ? negative.join(", ") : "(none)"
+  ].join("\n");
+
+  return {
+    promptPack,
+    positive,
+    negative,
+    lint,
+    manifest: { run_id: runId, doc_hash: docHash, prompt_pack_hash: packHash, aspect_ratio: ar }
+  };
+}
+
+function computeJsonPatch(base, cur){
+  // RFC6902-ish ops (add/replace/remove). Good-enough for reproducible overlays.
+  const ops = [];
+  const esc = (s)=>String(s).replace(/~/g,"~0").replace(/\//g,"~1");
+  const walk = (b, c, p)=>{
+    if (deepEqual(b, c)) return;
+
+    const bObj = isPlainObject(b);
+    const cObj = isPlainObject(c);
+
+    if (Array.isArray(b) || Array.isArray(c)){
+      ops.push({ op: (b === undefined) ? "add" : (c === undefined) ? "remove" : "replace", path: p || "/", value: c });
+      return;
+    }
+
+    if (!bObj || !cObj){
+      if (c === undefined) ops.push({ op:"remove", path: p || "/" });
+      else ops.push({ op: (b === undefined) ? "add" : "replace", path: p || "/", value: c });
+      return;
+    }
+
+    const keys = new Set([...Object.keys(b||{}), ...Object.keys(c||{})]);
+    for (const k of Array.from(keys).sort()){
+      if (BLOCKED_KEYS.has(k)) continue;
+      const np = (p || "") + "/" + esc(k);
+      if (!(k in c)){
+        ops.push({ op:"remove", path: np });
+        continue;
+      }
+      if (!(k in b)){
+        ops.push({ op:"add", path: np, value: c[k] });
+        continue;
+      }
+      walk(b[k], c[k], np);
+    }
+  };
+  walk(base, cur, "");
+  return ops;
+}
+
+
+    /* ---------- Assembler (legacy master_prompt) ---------- */
     function buildMasterPrompt(data){
       const parts = [];
       const mode = data.prompt_profile?.mode || "photoreal";
@@ -1352,6 +1940,11 @@
 
     let step0Inject = true;
     let step0Detect = true;
+
+    let showOnlyModified = false;
+    let autoSaveRuns = false;
+
+    let lastDerived = null; // {promptPack, json, lint, manifest, doc}
 
     function isUltraEliteTemplate(){ return currentTemplateName === "Ultra Elite (ChatGPT5.2)"; }
     function refreshStep4Visibility(){ $("card4").style.display = isUltraEliteTemplate() ? "block" : "none"; }
@@ -1484,6 +2077,31 @@
       saveState();
     }
     $("saveSwitch").onclick=()=> setSaveSwitch(!saveAsJson);
+
+/* ---------- Diff filter toggle (show only modified fields) ---------- */
+function setDiffSwitch(on){
+  showOnlyModified = !!on;
+  const sw = $("diffSwitch");
+  if (sw){
+    sw.classList.toggle("on", showOnlyModified);
+    sw.setAttribute("aria-checked", showOnlyModified ? "true" : "false");
+  }
+  renderStep2(); renderStep3(); renderStep4();
+  saveState();
+}
+if ($("diffSwitch")) $("diffSwitch").onclick=()=> setDiffSwitch(!showOnlyModified);
+
+    /* ---------- Auto-save runs toggle ---------- */
+    function setAutoSaveSwitch(on){
+      autoSaveRuns = !!on;
+      const sw = $("autoSaveSwitch");
+      if (sw){
+        sw.classList.toggle("on", autoSaveRuns);
+        sw.setAttribute("aria-checked", autoSaveRuns ? "true" : "false");
+      }
+      saveState();
+    }
+    if ($("autoSaveSwitch")) $("autoSaveSwitch").onclick=()=> setAutoSaveSwitch(!autoSaveRuns);
 
     /* ---------- Field grouping ---------- */
     function groupPaths(paths){
@@ -1621,22 +2239,27 @@
     }
 
     function buildControl(path, onValueChanged){
-      const v = getByPath(currentData, path);
-      if (Array.isArray(v)) return buildArrayControl(path, onValueChanged);
-      if (typeof v === "boolean"){
-        const sel=document.createElement("select");
-        ["true","false"].forEach(x=>{
-          const o=document.createElement("option"); o.value=x; o.textContent=x; sel.appendChild(o);
-        });
-        sel.value = String(v);
-        sel.addEventListener("change", ()=> { setByPath(currentData, path, sel.value==="true"); saveState(); onValueChanged?.(); });
-        const w=document.createElement("div"); w.appendChild(sel);
-        return w;
-      }
-      return buildScalarControl(path, onValueChanged);
-    }
+  const v = getByPath(currentData, path);
+  const t = (FIELD_META[path]?.type || FIELD_TYPES[path] || (Array.isArray(v) ? "array" : typeof v));
 
-    function renderValueInfoBox(path, selectedValue){
+  if (t === "array") return buildArrayControl(path, onValueChanged);
+
+  if (t === "boolean"){
+    const cur = (v === undefined) ? false : !!v;
+    const sel=document.createElement("select");
+    ["true","false"].forEach(x=>{
+      const o=document.createElement("option"); o.value=x; o.textContent=x; sel.appendChild(o);
+    });
+    sel.value = String(cur);
+    sel.addEventListener("change", ()=> { setByPath(currentData, path, sel.value==="true"); saveState(); onValueChanged?.(); });
+    const w=document.createElement("div"); w.appendChild(sel);
+    return w;
+  }
+
+  return buildScalarControl(path, onValueChanged);
+}
+
+function renderValueInfoBox(path, selectedValue){
       const meta = FIELD_META[path] || {};
       const vinfo = VALUE_INFO[path]?.[selectedValue];
 
@@ -1747,39 +2370,57 @@
       groupBody.appendChild(row);
     }
 
-    function renderFieldGroups(container, paths){
-      container.innerHTML = "";
-      const {cats, groups} = groupPaths(paths);
+    function renderFieldGroups(container, paths, opts={}){
+  const showUndefined = !!opts.showUndefined;
+  const onlyModified = !!opts.onlyModified;
 
-      cats.forEach(cat=>{
-        const det = document.createElement("details");
-        det.className = "group";
-        det.open = false;
+  container.innerHTML = "";
+  const {cats, groups} = groupPaths(paths);
 
-        det.addEventListener("toggle", ()=>{
-          if (!det.open) return;
-          closeOtherDetails(container, det);
-        });
+  const isModified = (path)=>{
+    if (!onlyModified) return true;
+    const cur = getByPath(currentData, path);
+    const base = getByPath(baseData, path);
+    return !deepEqual(cur, base);
+  };
 
-        const sum = document.createElement("summary");
-        sum.innerHTML = `<span class="groupTitle">${escapeHtml(cat)}</span><span class="groupMeta">${groups[cat].length} fields</span>`;
-        det.appendChild(sum);
+  cats.forEach(cat=>{
+    const filtered = groups[cat].filter(path=>{
+      const exists = getByPath(currentData, path) !== undefined;
+      if (!showUndefined && !exists) return false;
+      if (!isModified(path)) return false;
+      return true;
+    });
 
-        const body = document.createElement("div");
-        body.className = "section";
+    if (!filtered.length) return;
 
-        groups[cat].forEach(path=>{
-          if (getByPath(currentData, path) === undefined) return;
-          renderFieldRow(body, path);
-        });
+    const det = document.createElement("details");
+    det.className = "group";
+    det.open = false;
 
-        det.appendChild(body);
-        container.appendChild(det);
-      });
-    }
+    det.addEventListener("toggle", ()=>{
+      if (!det.open) return;
+      closeOtherDetails(container, det);
+    });
 
-    function renderStep2(){
-      renderFieldGroups($("commonFields"), COMMON_FIELDS.filter(p=>getByPath(currentData,p)!==undefined));
+    const sum = document.createElement("summary");
+    sum.innerHTML = `<span class="groupTitle">${escapeHtml(cat)}</span><span class="groupMeta">${filtered.length} fields</span>`;
+    det.appendChild(sum);
+
+    const body = document.createElement("div");
+    body.className = "section";
+
+    filtered.forEach(path=>{
+      renderFieldRow(body, path);
+    });
+
+    det.appendChild(body);
+    container.appendChild(det);
+  });
+}
+
+function renderStep2(){
+      renderFieldGroups($("commonFields"), COMMON_FIELDS, { showUndefined:true, onlyModified: showOnlyModified });
     }
 
     function renderStep3(){
@@ -1793,11 +2434,12 @@
       }
       $("expertHint").textContent = (godUnlocked ? "Unlocked (God enabled)" : "Unlocked");
 
+      inferSchemaRegistry();
       ensureMetaForAllLeafPaths(currentData);
-      const leaves = listLeafPaths(currentData).filter(p => p !== "prompt_output.master_prompt");
+      const schemaPaths = (SCHEMA_PATHS_BY_TEMPLATE[currentTemplateName] || ALL_SCHEMA_PATHS).filter(p => p !== "prompt_output.master_prompt");
       const setCommon = new Set(COMMON_FIELDS);
-      const expertPaths = leaves.filter(p => !setCommon.has(p));
-      renderFieldGroups(expertFieldsEl, expertPaths);
+      const expertPaths = schemaPaths.filter(p => !setCommon.has(p));
+      renderFieldGroups(expertFieldsEl, expertPaths, { showUndefined:true, onlyModified: showOnlyModified });
     }
 
     function renderStep4(){
@@ -1808,11 +2450,12 @@
         godFieldsEl.innerHTML = `<div class="help-inline">Unlock Expert Mode first.</div>`;
         return;
       }
+      inferSchemaRegistry();
       ensureMetaForAllLeafPaths(currentData);
-      const leaves = listLeafPaths(currentData).filter(p => p !== "prompt_output.master_prompt");
+      const schemaPaths = (SCHEMA_PATHS_BY_TEMPLATE[currentTemplateName] || ALL_SCHEMA_PATHS).filter(p => p !== "prompt_output.master_prompt");
       const setCommon = new Set(COMMON_FIELDS);
-      const paths = leaves.filter(p => !setCommon.has(p));
-      renderFieldGroups(godFieldsEl, paths);
+      const paths = schemaPaths.filter(p => !setCommon.has(p));
+      renderFieldGroups(godFieldsEl, paths, { showUndefined:true, onlyModified: showOnlyModified });
 
       if (!godUnlocked){
         const msg = document.createElement("div");
@@ -1885,58 +2528,127 @@
       }
     }
 
-    /* ---------- Output (Executable JSON header includes Name/Purpose) ---------- */
-    function generateOutputText(){
-      const out = deepClone(currentData);
+    /* ---------- Output (Prompt Pack compiler + JSON export) ---------- */
+function buildCanonicalDocForExport(){
+  const out = deepClone(currentData);
 
-      // store name/purpose into JSON meta (and keep empties stripped later)
-      out.meta = out.meta || {};
-      out.meta.app_name = APP_NAME;
-      out.meta.schema_version = APP_VERSION;
-      out.meta.chat_name = (chatName || "").trim();
-      out.meta.purpose = (purpose || "").trim();
+  // standard meta
+  out.meta = out.meta || {};
+  out.meta.app_name = APP_NAME;
+  out.meta.schema_version = APP_VERSION;
+  out.meta.template = currentTemplateName;
+  out.meta.chat_name = (chatName || "").trim();
+  out.meta.purpose = (purpose || "").trim();
+  out.meta.generated_at = new Date().toISOString();
 
-      applyMasterPrompt(out, includeMaster);
+  // legacy master_prompt (optional; kept for backwards compatibility)
+  applyMasterPrompt(out, includeMaster);
 
-      const dnc = getByPath(out, "identity.do_not_change");
-      if (Array.isArray(dnc) && dnc.length){
-        ensureArrayContains(out, "constraints.must_include", "strict identity lock");
-        dnc.forEach(t => ensureArrayContains(out, "constraints.avoid", `do not change ${t}`));
-      }
+  // legacy identity lock helper
+  const dnc = getByPath(out, "identity.do_not_change");
+  if (Array.isArray(dnc) && dnc.length){
+    ensureArrayContains(out, "constraints.must_include", "strict identity lock");
+    dnc.forEach(t => ensureArrayContains(out, "constraints.avoid", `do not change ${t}`));
+  }
 
-      const stripped = stripEmpties(out) || {};
-      const json = JSON.stringify(stripped, null, 2);
+  const stripped = stripEmpties(out) || {};
 
-      const mode = $("outputMode").value;
-      const mp = stripped?.prompt_output?.master_prompt || "";
+  // compile Prompt Pack + hashes
+  const compiled = compilePromptPack(stripped, { chatName, purpose, templateName: currentTemplateName });
+  stripped.meta = stripped.meta || {};
+  stripped.meta.run_id = compiled.manifest.run_id;
+  stripped.meta.doc_hash = compiled.manifest.doc_hash;
+  stripped.meta.prompt_pack_hash = compiled.manifest.prompt_pack_hash;
 
-      if (mode === "full_json") return json;
-      if (mode === "prompt_only") return (mp || "").trim();
-      if (mode === "prompt_and_json") return `MASTER_PROMPT:\n${(mp||"").trim()}\n\nJSON:\n${json}`;
-      if (mode === "exec_json"){
-        const n = (chatName || "").trim();
-        const p = (purpose || "").trim();
-        return `Provided: JSON\nTask: Render Image using JSON Data\nName: ${n || "(none)"}\nPurpose: ${p || "(none)"}\n\n${json}`;
-      }
-      return JSON.stringify({
-        meta: {
-          app_name: APP_NAME,
-          app_version: APP_VERSION,
-          template: currentTemplateName,
-          include_master_prompt: includeMaster,
-          output_mode: mode
-        },
-        master_prompt_preview: (mp||"").trim(),
-        json: stripped
-      }, null, 2);
+  const json = JSON.stringify(stripped, null, 2);
+  return { stripped, json, compiled };
+}
+
+function generateOutputText(){
+  const { stripped, json, compiled } = buildCanonicalDocForExport();
+  lastDerived = { doc: stripped, json, ...compiled };
+
+  const mode = $("outputMode").value;
+  const mp = stripped?.prompt_output?.master_prompt || "";
+
+  if (mode === "prompt_pack") return compiled.promptPack;
+  if (mode === "prompt_pack_and_json") return `PROMPT_PACK:
+${compiled.promptPack}
+
+JSON:
+${json}`;
+  if (mode === "full_json") return json;
+
+  if (mode === "json_patch"){
+    const base = stripEmpties(deepClone(baseData)) || {};
+    const patch = computeJsonPatch(base, stripped);
+    return JSON.stringify(patch, null, 2);
+  }
+
+  if (mode === "prompt_only") return (mp || "").trim();
+  if (mode === "prompt_and_json") return `MASTER_PROMPT:
+${(mp||"").trim()}
+
+JSON:
+${json}`;
+
+  if (mode === "exec_json"){
+    const n = (chatName || "").trim();
+    const p = (purpose || "").trim();
+    return `Provided: JSON
+Task: Use the built-in image generator to render 1 image using this JSON.
+Rules: Output ONLY the image. No explanations. No text overlays/logos/watermarks.
+Name: ${n || "(none)"}
+Purpose: ${p || "(none)"}
+
+${json}`;
+  }
+
+  return JSON.stringify({
+    meta: {
+      app_name: APP_NAME,
+      app_version: APP_VERSION,
+      template: currentTemplateName,
+      include_master_prompt: includeMaster,
+      output_mode: mode
+    },
+    manifest: compiled.manifest,
+    lint: compiled.lint,
+    prompt_pack_preview: compiled.promptPack,
+    json: stripped
+  }, null, 2);
+}
+
+function refreshOutput(){
+  const out = generateOutputText();
+  $("outMain").textContent = out || "";
+  $("outHint").textContent = $("outputMode").value;
+
+  // Lint panel (never included in copied prompt pack unless user copies it manually)
+  const box = $("lintBox");
+  const lint = lastDerived?.lint;
+  if (box && lint){
+    const lines = [];
+    if (lint.errors?.length){
+      lines.push(`<div><b>Errors</b><ul>${lint.errors.map(x=>`<li>${escapeHtml(x)}</li>`).join("")}</ul></div>`);
     }
-
-    function refreshOutput(){
-      const out = generateOutputText();
-      $("outMain").textContent = out || "";
-      $("outHint").textContent = $("outputMode").value;
-      saveState();
+    if (lint.warnings?.length){
+      lines.push(`<div><b>Warnings</b><ul>${lint.warnings.map(x=>`<li>${escapeHtml(x)}</li>`).join("")}</ul></div>`);
     }
+    if (lint.notes?.length){
+      lines.push(`<div><b>Notes</b><ul>${lint.notes.map(x=>`<li>${escapeHtml(x)}</li>`).join("")}</ul></div>`);
+    }
+    if (lines.length){
+      box.innerHTML = lines.join("");
+      box.style.display = "block";
+    } else {
+      box.innerHTML = "";
+      box.style.display = "none";
+    }
+  }
+
+  saveState();
+}
 
     /* ---------- Expand output ---------- */
     $("expandBtn").onclick=()=>{
@@ -1953,47 +2665,38 @@
       return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
     }
 
-    async function saveFileWithLogic(){
-      const filename = ($("filenameInput").value || "").trim();
+    function saveFileWithLogic(){
+  const filename = ($("filenameInput").value || "").trim();
+  if (!filename){
+    toast("Set a filename first", "err", "Save");
+    return;
+  }
 
-      if (!filename && !saveAsJson){
-        toast("No action (save disabled)", "err", "Save");
-        return;
-      }
-      if (!filename && saveAsJson){
-        const name = prompt("Filename (without .json)?");
-        if (!name || !name.trim()){
-          toast("Save cancelled (no filename)", "err", "Save");
-          return;
-        }
-        $("filenameInput").value = name.trim();
-        saveState();
-      }
+  if (saveAsJson){
+    const { json } = buildCanonicalDocForExport();
+    const blob = new Blob([json], {type:"application/json"});
+    const a=document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename.endsWith(".json") ? filename : `${filename}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast("Saved JSON file", "ok", "Save");
+    return;
+  }
 
-      const finalNameRaw = ($("filenameInput").value || "").trim();
+  // fallback: save current output as plain text
+  refreshOutput();
+  const txt = $("outMain").textContent || "";
+  const blob = new Blob([txt], {type:"text/plain"});
+  const a=document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("Saved file", "ok", "Save");
+}
+$("saveFileBtn").onclick=saveFileWithLogic;
 
-      if (finalNameRaw && !saveAsJson){
-        toast("Save disabled (filename ignored)", "err", "Save");
-        return;
-      }
-
-      if (saveAsJson){
-        refreshOutput();
-        const text = $("outMain").textContent || "";
-        const stamp = nowStamp();
-        const safe = finalNameRaw.replace(/[\\/:*?"<>|]+/g, "_");
-        const full = `${safe}_${stamp}.json`;
-        const blob = new Blob([text], {type:"application/json"});
-        const a=document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = full;
-        a.click();
-        URL.revokeObjectURL(a.href);
-        toast("Saved JSON file", "ok", full);
-        return;
-      }
-    }
-    $("saveFileBtn").onclick=saveFileWithLogic;
 
     /* ---------- Step open state ---------- */
     function getStepOpenState(){
@@ -2059,6 +2762,7 @@
     /* ---------- Navbar actions ---------- */
     $("barGenerate").onclick=()=>{
       refreshOutput();
+      if (autoSaveRuns) { try { $("saveRunBtn").click(); } catch(_){} }
       $("cardOut").open = true;
       toast("Generated output", "ok", "Generate");
     };
@@ -2069,6 +2773,51 @@
       const ok = await copyToClipboard(txt);
       ok ? toast("Copied", "ok", "Copy") : toast("Copy failed", "err", "Clipboard");
     };
+// Output helpers
+$("copyPackBtn").onclick = async ()=>{
+  const pack = lastDerived?.promptPack || buildCanonicalDocForExport().compiled.promptPack;
+  const ok = await copyToClipboard(pack);
+  ok ? toast("Copied prompt pack", "ok", "Output") : toast("Copy failed", "err", "Clipboard");
+};
+
+$("saveRunBtn").onclick = ()=>{
+  const { stripped, compiled } = buildCanonicalDocForExport();
+  const rec = {
+    id: uuidv4(),
+    ts: new Date().toISOString(),
+    name: (chatName || "").trim(),
+    purpose: (purpose || "").trim(),
+    template: currentTemplateName,
+    run_id: compiled.manifest.run_id,
+    doc_hash: compiled.manifest.doc_hash,
+    prompt_pack_hash: compiled.manifest.prompt_pack_hash,
+    prompt_pack: compiled.promptPack,
+    doc: stripped
+  };
+  addRun(rec);
+  toast("Saved run to history", "ok", rec.run_id);
+};
+
+$("exportRunsBtn").onclick = ()=>{
+  const runs = loadRuns();
+  const blob = new Blob([JSON.stringify(runs, null, 2)], {type:"application/json"});
+  const a=document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `promptforge_ris_runs_${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("Exported runs", "ok", "Runs");
+};
+
+$("clearRunsBtn").onclick = ()=>{
+  const ok = confirm("Clear all saved runs? This cannot be undone.");
+  if (!ok) return;
+  saveRuns([]);
+  renderRunsDrawer();
+  toast("Cleared runs", "ok", "Runs");
+};
+
+
 
     /* ---------- Step 1 buttons ---------- */
     $("applyTemplateBtn").onclick=()=>{
@@ -2128,18 +2877,51 @@
     }
 
     /* ---------- Step 0: Merge (order Name, Prompt, JSON) ---------- */
-    function buildStep0MergedText(name, purposeText, promptText, jsonText){
-      const parts = [];
-      parts.push(`Name: ${name || "(none)"}`);
-      parts.push(`Purpose: ${purposeText || "(none)"}`);
-      parts.push("");
-      parts.push("PROMPT:");
-      parts.push(promptText ? promptText.trim() : "(empty)");
-      parts.push("");
-      parts.push("JSON:");
-      parts.push(jsonText ? jsonText.trim() : "(empty)");
-      return parts.join("\n");
-    }
+    function buildStep0MergedText(step0Name, step0Purpose, step0Prompt, jsonText){
+  const name = (step0Name || "").trim();
+  const purp = (step0Purpose || "").trim();
+  const seed = (step0Prompt || "").trim();
+
+  let parsed = null;
+  if (jsonText && jsonText.trim()){
+    const r = safeParseJson(jsonText);
+    if (r.ok) parsed = r.value;
+  }
+
+  inferSchemaRegistry();
+
+  const detected = (step0Detect && parsed) ? detectTemplateFromJson(parsed) : null;
+  const tpl = (detected && TEMPLATE_BASES[detected]) ? detected : currentTemplateName;
+
+  const base = deepClone(TEMPLATE_BASES[tpl]);
+  base.meta = base.meta || {};
+  base.meta.app_name = APP_NAME;
+  base.meta.schema_version = APP_VERSION;
+  base.meta.template = tpl;
+  base.meta.chat_name = name;
+  base.meta.purpose = purp;
+
+  base.prompt_output = base.prompt_output || { user_prefix:"", negative_prompt:"", directive:"" };
+  base.prompt_output.user_prefix = seed;
+
+  if (parsed){
+    const schemaPaths = SCHEMA_PATHS_BY_TEMPLATE[tpl] || ALL_SCHEMA_PATHS;
+    quarantineUnknownFields(parsed, schemaPaths);
+    coerceTypesInPlace(parsed);
+    deepMerge(base, parsed);
+  }
+
+  applyMasterPrompt(base, includeMaster);
+  const stripped = stripEmpties(base) || {};
+  const compiled = compilePromptPack(stripped, { chatName: name, purpose: purp, templateName: tpl });
+  stripped.meta = stripped.meta || {};
+  stripped.meta.run_id = compiled.manifest.run_id;
+  stripped.meta.doc_hash = compiled.manifest.doc_hash;
+  stripped.meta.prompt_pack_hash = compiled.manifest.prompt_pack_hash;
+
+  const outJson = JSON.stringify(stripped, null, 2);
+  return `PROMPT_PACK:\n${compiled.promptPack}\n\nJSON:\n${outJson}`;
+}
 
     function safeParseJson(text){
       if (!text || !text.trim()) return { ok:false, err:"Empty JSON" };
@@ -2175,13 +2957,23 @@
       }
 
       // merge JSON into currentData (JSON overrides state where keys overlap)
-      if (parsedJson){
-        deepMerge(currentData, parsedJson);
-        // standardize meta
-        currentData.meta = currentData.meta || {};
-        currentData.meta.app_name = APP_NAME;
-        currentData.meta.schema_version = APP_VERSION;
-      }
+if (parsedJson){
+  inferSchemaRegistry();
+  const schemaPaths = SCHEMA_PATHS_BY_TEMPLATE[currentTemplateName] || ALL_SCHEMA_PATHS;
+  const quarantine = quarantineUnknownFields(parsedJson, schemaPaths);
+  const coercions = coerceTypesInPlace(parsedJson);
+
+  deepMerge(currentData, parsedJson);
+
+  // standardize meta
+  currentData.meta = currentData.meta || {};
+  currentData.meta.app_name = APP_NAME;
+  currentData.meta.schema_version = APP_VERSION;
+
+  const qCount = Object.keys(quarantine||{}).length;
+  if (qCount) toast(`Quarantined ${qCount} unknown field(s)`, "warn", "Step 0");
+  if (coercions.length) toast(`Coerced ${coercions.length} field(s)`, "ok", "Step 0");
+}
 
       renderStep2(); renderStep3(); renderStep4();
       refreshOutput();
@@ -2286,38 +3078,68 @@
 
     /* ---------- Import/Export ---------- */
     function exportJSONFile(){
-      refreshOutput();
-      const text = $("outMain").textContent || "";
-      const blob = new Blob([text], {type:"application/json"});
-      const a=document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `promptforge_ris_output_${Date.now()}.json`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-      toast("Exported JSON", "ok", "File");
-    }
+  const { json } = buildCanonicalDocForExport();
+  const blob = new Blob([json], {type:"application/json"});
+  const a=document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `promptforge_ris_${currentTemplateName.replace(/\s+/g,"_").toLowerCase()}_${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("Exported JSON", "ok", "File");
+}
 
     function importJSONFileFromPicker(){
-      const fi = $("fileInput");
-      fi.onchange = async ()=>{
-        try{
-          const file = fi.files && fi.files[0];
-          if (!file) return;
-          const txt = await file.text();
-          const parsed = JSON.parse(txt);
-          currentData = parsed;
-          renderStep2(); renderStep3(); renderStep4();
-          refreshOutput();
-          toast("Imported JSON", "ok", "File");
-          saveState();
-        }catch(_){
-          toast("Import JSON failed", "err", "Invalid JSON");
-        }finally{
-          fi.value = "";
-        }
-      };
-      fi.click();
+  const fi = $("fileInput");
+  fi.onchange = async ()=>{
+    try{
+      const file = fi.files && fi.files[0];
+      if (!file) return;
+      const txt = await file.text();
+      const parsed = JSON.parse(txt);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)){
+        toast("Import JSON failed", "err", "JSON must be an object");
+        return;
+      }
+
+      inferSchemaRegistry();
+
+      // Template detection (best-effort). If not detected, keep current template.
+      const detected = detectTemplateFromJson(parsed) || currentTemplateName;
+      if (detected && TEMPLATE_BASES[detected]){
+        currentTemplateName = detected;
+        baseData = deepClone(TEMPLATE_BASES[detected]);
+        $("templateSelect").value = detected;
+        $("templateDesc").textContent = TEMPLATE_INFO[detected] || "";
+        refreshStep4Visibility();
+      }
+
+      // Quarantine unknown fields against detected template schema
+      const schemaPaths = SCHEMA_PATHS_BY_TEMPLATE[currentTemplateName] || ALL_SCHEMA_PATHS;
+      const quarantine = quarantineUnknownFields(parsed, schemaPaths);
+      const coercions = coerceTypesInPlace(parsed);
+
+      currentData = parsed;
+      currentData.meta = currentData.meta || {};
+      currentData.meta.app_name = APP_NAME;
+      currentData.meta.schema_version = APP_VERSION;
+
+      renderStep2(); renderStep3(); renderStep4();
+      refreshOutput();
+      toast("Imported JSON", "ok", currentTemplateName);
+
+      const qCount = Object.keys(quarantine||{}).length;
+      if (qCount) toast(`Quarantined ${qCount} unknown field(s)`, "warn", "Import");
+      if (coercions.length) toast(`Coerced ${coercions.length} field(s)`, "ok", "Import");
+
+      saveState();
+    }catch(_){
+      toast("Import JSON failed", "err", "Invalid JSON");
+    }finally{
+      fi.value = "";
     }
+  };
+  fi.click();
+}
 
     function exportBundle(){
       const bundle = {
@@ -2365,7 +3187,7 @@
 
           if (bundle.state?.template && TEMPLATE_BASES[bundle.state.template]) currentTemplateName = bundle.state.template;
           includeMaster = !!bundle.state?.include_master_prompt;
-          $("outputMode").value = bundle.state?.output_mode || "exec_json";
+          $("outputMode").value = bundle.state?.output_mode || "prompt_pack";
           expertUnlocked = !!bundle.state?.expert_unlocked;
           godUnlocked = !!bundle.state?.god_unlocked;
 
@@ -2440,8 +3262,18 @@
       includeMaster = false;
       expertUnlocked = false;
       godUnlocked = false;
+      showOnlyModified = false;
+      autoSaveRuns = false;
+      if ($("diffSwitch")) {
+        $("diffSwitch").classList.remove("on");
+        $("diffSwitch").setAttribute("aria-checked", "false");
+      }
+      if ($("autoSaveSwitch")) {
+        $("autoSaveSwitch").classList.remove("on");
+        $("autoSaveSwitch").setAttribute("aria-checked", "false");
+      }
 
-      $("outputMode").value = "exec_json";
+      $("outputMode").value = "prompt_pack";
       $("templateSelect").value = currentTemplateName;
       $("templateDesc").textContent = TEMPLATE_INFO[currentTemplateName] || "";
       setMasterSwitch(false);
@@ -2494,6 +3326,8 @@
           outputMode: $("outputMode").value,
           expertUnlocked,
           godUnlocked,
+          showOnlyModified,
+          autoSaveRuns,
           currentData,
           step_open: getStepOpenState(),
           saveAsJson,
@@ -2528,8 +3362,18 @@
         includeMaster = !!s.includeMaster;
         expertUnlocked = !!s.expertUnlocked;
         godUnlocked = !!s.godUnlocked;
+        showOnlyModified = !!s.showOnlyModified;
+        autoSaveRuns = !!s.autoSaveRuns;
 
-        $("outputMode").value = s.outputMode || "exec_json";
+        $("outputMode").value = s.outputMode || "prompt_pack";
+        if ($("diffSwitch")) {
+          $("diffSwitch").classList.toggle("on", showOnlyModified);
+          $("diffSwitch").setAttribute("aria-checked", showOnlyModified ? "true" : "false");
+        }
+        if ($("autoSaveSwitch")) {
+          $("autoSaveSwitch").classList.toggle("on", autoSaveRuns);
+          $("autoSaveSwitch").setAttribute("aria-checked", autoSaveRuns ? "true" : "false");
+        }
         if (s.currentData && typeof s.currentData === "object") currentData = s.currentData;
         baseData = deepClone(TEMPLATE_BASES[currentTemplateName]);
 
@@ -2603,11 +3447,14 @@
       $("templateDesc").textContent = TEMPLATE_INFO[currentTemplateName] || "";
 
       // defaults
-      $("outputMode").value = "exec_json";
+      $("outputMode").value = "prompt_pack";
       setMasterSwitch(false);
       setSaveSwitch(false);
 
       setupStepAccordion();
+
+      inferSchemaRegistry();
+      renderRunsDrawer();
 
       const restored = restoreState();
       if (!restored){
