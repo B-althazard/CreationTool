@@ -3,16 +3,27 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>PromptForge RIS v1.0.1 (Single-file)</title>
+  <title>PromptForge RIS v1.1.0 (Single-file)</title>
   <style>
+
     :root{
-      --bg:#f6f7f9; --card:#fff; --text:#111; --muted:#667085;
-      --border:#e3e6ea; --border2:#d5d9df; --accent:#111;
+      color-scheme: light;
+      --bg:#f6f7f9; --card:#ffffff; --text:#111111; --muted:#667085;
+      --border:#e3e6ea; --border2:#d5d9df; --accent:#111111; --onAccent:#ffffff;
+      --panel:#f2f4f7; --panel2:#fbfbfc; --ghost:#f7f7f7;
       --ok:#067647; --err:#b42318;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
       --radius:16px; --shadow: 0 1px 0 rgba(16,24,40,.02), 0 8px 24px rgba(16,24,40,.06);
       --tap:44px;
     }
+    :root[data-theme="dark"]{
+      color-scheme: dark;
+      --bg:#0c0d10; --card:#14161c; --text:#f2f3f5; --muted:#a5acb8;
+      --border:#2a2f3a; --border2:#3a4252; --accent:#f2f3f5; --onAccent:#0c0d10;
+      --panel:#1b1f27; --panel2:#161a22; --ghost:#1a1e25;
+      --ok:#34d399; --err:#fb7185;
+    }
+
     *{box-sizing:border-box}
     body{ margin:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--text); -webkit-text-size-adjust:100%;}
     code{font-family:var(--mono); font-size:.95em}
@@ -23,7 +34,7 @@
 
     header{
       position: sticky; top:0; z-index:20;
-      background: color-mix(in oklab, var(--bg) 88%, #fff 12%);
+      background: color-mix(in oklab, var(--bg) 88%, var(--panel2) 12%);
       backdrop-filter: blur(6px);
       border-bottom: 1px solid var(--border);
       padding: 14px 16px;
@@ -46,7 +57,7 @@
     .toast{
       pointer-events:none;
       border:1px solid var(--border2);
-      background:#fff;
+      background:var(--card);
       border-radius: 999px;
       box-shadow: var(--shadow);
       padding: 10px 14px;
@@ -67,7 +78,7 @@
     .drawerBackdrop{ position: fixed; inset:0; background: rgba(0,0,0,.35); display:none; z-index:50; }
     .drawer{
       position: fixed; top:0; right:0; height:100%; width: min(92vw, 440px);
-      background:#fff; border-left:1px solid var(--border);
+      background:var(--card); border-left:1px solid var(--border);
       box-shadow: -10px 0 40px rgba(0,0,0,.12);
       transform: translateX(110%); transition: transform .18s ease;
       z-index:60;
@@ -81,8 +92,8 @@
     .drawer .small{color:var(--muted); font-size:12px; line-height:1.35}
     .hr{height:1px; background:var(--border); margin:6px 0}
     .btnrow{display:flex; gap:8px; flex-wrap:wrap}
-    .drawer details{ border:1px solid var(--border); border-radius: 12px; overflow:hidden; background:#fff; }
-    .drawer details > summary{ list-style:none; cursor:pointer; padding: 10px 10px; font-weight:900; background:#fbfbfc; border-bottom:1px solid var(--border); }
+    .drawer details{ border:1px solid var(--border); border-radius: 12px; overflow:hidden; background:var(--card); }
+    .drawer details > summary{ list-style:none; cursor:pointer; padding: 10px 10px; font-weight:900; background:var(--panel2); border-bottom:1px solid var(--border); }
     .drawer details > summary::-webkit-details-marker{display:none}
     .drawer details .dsec{ padding: 10px 10px; }
 
@@ -92,12 +103,12 @@
       padding: 0 12px;
       border-radius: 12px;
       border:1px solid var(--border2);
-      background:#fff;
+      background:var(--card);
       cursor:pointer;
       font-weight:800;
     }
-    .btn.primary{ background: var(--accent); border-color: var(--accent); color:#fff; }
-    .btn.ghost{ background: #f7f7f7; }
+    .btn.primary{ background: var(--accent); border-color: var(--accent); color:var(--onAccent); }
+    .btn.ghost{ background:var(--ghost); }
     .btn.danger{ border-color: color-mix(in oklab, var(--err) 35%, var(--border2)); background: color-mix(in oklab, var(--err) 10%, #fff); color: var(--err); }
     .btn.small{ height: 38px; border-radius: 10px; font-weight:800; }
 
@@ -144,14 +155,14 @@
       border-radius: 12px;
       padding: 10px 12px;
       font-size: 14px;
-      background:#fff;
+      background:var(--card);
       outline:none;
       min-height: var(--tap);
     }
     textarea{ min-height: 96px; resize: vertical; font-family: var(--mono); font-size: 12px; line-height:1.35; }
     .help-inline{ margin-top:6px; font-size: 12px; color: var(--muted); line-height:1.35; }
     .opt-desc{ font-size:12px; color: var(--muted); margin-top: 6px; line-height:1.35; }
-    .suggest{ font-size:12px; color: #101828; background:#f2f4f7; border:1px dashed var(--border2); border-radius: 12px; padding: 10px 12px; line-height:1.35; margin-top:8px; }
+    .suggest{ font-size:12px; color: var(--text); background:var(--panel); border:1px dashed var(--border2); border-radius: 12px; padding: 10px 12px; line-height:1.35; margin-top:8px; }
 
     /* Output */
     .codewrap{ border-radius: 14px; overflow:hidden; border:1px solid #111; background:#0b0b0b; }
@@ -159,17 +170,35 @@
     .outActions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; align-items:center; }
     .mini{ font-size:12px; color:var(--muted); }
 
-    /* Toggle */
+    
+    .btn.tiny{ height: 34px; padding: 0 10px; border-radius: 10px; font-size:12px; font-weight:900; }
+    .btn.small{ height: 34px; padding: 0 10px; border-radius: 10px; }
+    .iconBtn{ position:absolute; right:16px; top:14px; }
+
+    .list{ display:flex; flex-direction:column; gap:8px; }
+    .listitem{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding: 10px 12px;
+      border:1px solid var(--border2);
+      border-radius: 14px;
+      background: var(--card);
+    }
+    .liLeft{ min-width:0; flex:1; }
+    .liTitle{ font-weight:1000; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .liMeta{ font-size:11px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .liRight{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+
+/* Toggle */
     .toggleRow{
       display:flex; align-items:center; justify-content:space-between; gap:10px;
-      padding: 10px 12px; border: 1px solid var(--border2); border-radius: 12px; background:#fff;
+      padding: 10px 12px; border: 1px solid var(--border2); border-radius: 12px; background:var(--card);
     }
     .toggleRow b{font-size:13px}
     .switch{
       width: 54px; height: 32px;
       border-radius: 999px;
       border: 1px solid var(--border2);
-      background: #f2f4f7;
+      background:var(--panel);
       position: relative;
       cursor:pointer;
       flex: 0 0 auto;
@@ -178,7 +207,7 @@
       position:absolute; top: 3px; left: 3px;
       width: 26px; height: 26px;
       border-radius: 999px;
-      background:#fff;
+      background:var(--card);
       border:1px solid var(--border2);
       transition: transform .15s ease, background .15s ease;
     }
@@ -191,7 +220,7 @@
       border-radius: 14px;
       overflow:hidden;
       margin: 10px 0;
-      background: #fff;
+      background:var(--card);
     }
     details.group > summary{
       list-style:none;
@@ -200,7 +229,7 @@
       display:flex; align-items:center; gap:10px;
       user-select:none;
       -webkit-tap-highlight-color: transparent;
-      background: #fbfbfc;
+      background:var(--panel2);
       border-bottom: 1px solid var(--border);
     }
     details.group > summary::-webkit-details-marker{display:none}
@@ -213,12 +242,12 @@
       border-radius: 14px;
       padding: 10px 10px;
       margin: 10px 0;
-      background:#fff;
+      background:var(--card);
     }
     .fieldTop{ display:flex; align-items:center; gap:10px; }
     .fieldTop .lab{ font-weight:900; font-size:12px; color:#222; flex:1; min-width:0; }
     .fieldTop .path{ font-family: var(--mono); font-size:11px; color: var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 45%; text-align:right;}
-    .fieldMoreBtn{ height: 34px; padding: 0 10px; border-radius: 10px; border:1px solid var(--border2); background:#fff; font-weight:900; cursor:pointer; }
+    .fieldMoreBtn{ height: 34px; padding: 0 10px; border-radius: 10px; border:1px solid var(--border2); background:var(--card); font-weight:900; cursor:pointer; }
 
     .fieldMore{ margin-top:10px; display:none; }
     .fieldMore.open{ display:block; }
@@ -227,7 +256,7 @@
     .valueInfoBox{
       border: 1px solid var(--border2);
       border-radius: 14px;
-      background:#fff;
+      background:var(--card);
       padding: 10px 12px;
       margin-top:10px;
     }
@@ -237,7 +266,7 @@
       font-family: var(--mono);
       font-size:11px;
       color:#111;
-      background:#f2f4f7;
+      background:var(--panel);
       border:1px solid var(--border2);
       border-radius:999px;
       padding: 4px 8px;
@@ -262,7 +291,7 @@
       transform: translateX(-50%);
       bottom: 10px;
       width: min(980px, calc(100vw - 24px));
-      background:#fff;
+      background:var(--card);
       border: 1px solid var(--border);
       border-radius: 999px;
       box-shadow: var(--shadow);
@@ -277,11 +306,11 @@
       height: 44px;
       border-radius: 999px;
       border: 1px solid var(--border2);
-      background:#fff;
+      background:var(--card);
       font-weight:900;
       cursor:pointer;
     }
-    .actionbar .pill.primary{ background:#111; border-color:#111; color:#fff; }
+    .actionbar .pill.primary{ background:var(--accent); border-color:var(--accent); color:var(--onAccent); }
     .actionbar .pill.small{ flex: 0 0 auto; width: 118px; }
 
     @media (min-width: 860px){
@@ -300,9 +329,10 @@
   <header>
     <div class="headrow">
       <div class="titlewrap">
-        <h1>PromptForge RIS v1.0.1 (Offline)</h1>
+        <h1>PromptForge RIS v1.1.0 (Offline)</h1>
         <div class="subtitle">PromptForge, Regenerative Image System • Brave/Firefox compatible</div>
       </div>
+      <button class="btn small iconBtn" id="themeToggleBtn" title="Toggle theme">☀</button>
     </div>
   </header>
 
@@ -340,8 +370,24 @@
         <div class="btnrow">
           <button class="btn" id="copySchemaBtn">Copy JSON Schema</button>
           <button class="btn" id="saveSchemaBtn">Save JSON Schema</button>
+          <button class="btn" id="validateNowBtn">Validate Now</button>
         </div>
         <div class="help-inline">Schema ID: <code id="schemaIdLabel"></code></div>
+      </div>
+    </details>
+
+    <details id="drawerAppearance">
+      <summary>Appearance</summary>
+      <div class="dsec">
+        <div class="row grid2">
+          <label>Theme</label>
+          <select id="themeSelect">
+            <option value="auto">Auto (system)</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
+        <div class="help-inline">Auto follows OS preference. Stored locally and included in bundles.</div>
       </div>
     </details>
 
@@ -385,6 +431,15 @@
         <div class="btnrow">
           <button class="btn" id="savePresetBtn">Save Preset As…</button>
         </div>
+
+        <div class="hr"></div>
+
+        <div class="row">
+          <input id="presetSearch" placeholder="Filter presets…" />
+        </div>
+
+        <div id="presetManager" class="list"></div>
+        <div class="help-inline">Tip: loading a preset also resets the baseline (Reset Edits returns to the post-preset state).</div>
       </div>
 </details>
 
@@ -598,6 +653,20 @@
           </div>
         </div>
 
+
+        <div class="row">
+          <div class="toggleRow">
+            <div>
+              <b>Lock run ID</b>
+              <div class="help-inline">ON: pins <code>meta.run_id</code> for reproducibility. OFF: compiler auto-generates a fresh run ID per build.</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <button class="btn tiny" id="newRunIdBtn" title="Generate a new run_id">New</button>
+              <div class="switch" id="runIdLockSwitch" role="switch" aria-checked="false"><div class="knob"></div></div>
+            </div>
+          </div>
+        </div>
+
 <div class="row">
   <div class="toggleRow">
     <div>
@@ -671,6 +740,8 @@
 
         <div class="outActions">
   <button class="btn primary" id="copyPackBtn">Copy Prompt Pack</button>
+  <button class="btn" id="copyJsonBtn">Copy JSON</button>
+  <button class="btn" id="downloadPackBtn">Download .txt</button>
   <button class="btn" id="saveRunBtn">Save to History</button>
 </div>
 <div class="outActions">
@@ -710,13 +781,14 @@
     <button class="pill primary" id="barGenerate">Generate</button>
     <button class="pill" id="barCopy">Copy</button>
     <button class="pill small" id="barActions">Actions</button>
+    <button class="pill small" id="barTheme" title="Toggle theme">☀</button>
   </div>
 
   <datalist id="schemaPathList"></datalist>
 
   <script>
     /* =========================================================
-      PromptForge RIS v1.0.1 (Single-file)
+      PromptForge RIS v1.1.0 (Single-file)
       USER_VISIBLE_CHANGES:
       - Step 0 “Merge & Seed”: Name + Purpose + Prompt + JSON merge + copy + upload
       - Step 0: Inject toggle + Detect template toggle
@@ -731,12 +803,56 @@
     ========================================================= */
 
     const APP_NAME = "PromptForge RIS";
-    const APP_VERSION = "v1.0.1-singlefile";
+    const APP_VERSION = "v1.1.0-singlefile";
 
-    const LS_KEY = "promptforge_ris_user_presets_v100";
-    const LS_STATE = "promptforge_ris_state_v100";
-    const LS_RUNS = "promptforge_ris_runs_v100";
+    const LS_KEY = "promptforge_ris_user_presets_v110";
+    const LS_STATE = "promptforge_ris_state_v110";
+    const LS_RUNS = "promptforge_ris_runs_v110";
     const LS_LAST_SEEN = "promptforge_ris_last_seen_version";
+const LS_THEME = "promptforge_ris_theme_mode_v110";
+/* ---------- Theme (Light/Dark/Auto) ---------- */
+const MQL_DARK = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+
+function normalizeThemeMode(v){
+  const x = String(v || "").toLowerCase().trim();
+  return (x === "dark" || x === "light" || x === "auto") ? x : "auto";
+}
+
+function getEffectiveTheme(mode){
+  const m = normalizeThemeMode(mode);
+  if (m === "auto"){
+    const prefersDark = !!(MQL_DARK && MQL_DARK.matches);
+    return prefersDark ? "dark" : "light";
+  }
+  return m;
+}
+
+function applyTheme(mode, {persist=true, quiet=false}={}){
+  themeMode = normalizeThemeMode(mode);
+  const effective = getEffectiveTheme(themeMode);
+  document.documentElement.dataset.theme = effective;
+  document.documentElement.style.colorScheme = effective;
+
+  // UI sync (safe if elements not yet present)
+  if ($("themeSelect")) $("themeSelect").value = themeMode;
+  if ($("themeToggleBtn")) $("themeToggleBtn").textContent = (effective === "dark") ? "☾" : "☀";
+  if ($("barTheme")) $("barTheme").textContent = (effective === "dark") ? "☾" : "☀";
+
+  if (persist){
+    try{ localStorage.setItem(LS_THEME, themeMode); }catch(_){}
+    saveState();
+  }
+  if (!quiet) toast(`Theme: ${themeMode} (${effective})`, "ok", "Appearance");
+}
+
+if (MQL_DARK && MQL_DARK.addEventListener){
+  MQL_DARK.addEventListener("change", ()=>{
+    if (normalizeThemeMode(themeMode) === "auto"){
+      applyTheme("auto", {persist:false, quiet:true});
+    }
+  });
+}
+
 
     const SCHEMA_ID_V1 = "promptforge.ris.personshot@1.0.0";
     const SCHEMA_DRAFT = "https://json-schema.org/draft/2020-12/schema";
@@ -765,8 +881,21 @@
     function openDrawer(){ $("drawer").classList.add("open"); $("drawerBackdrop").classList.add("open"); }
     function closeDrawer(){ $("drawer").classList.remove("open"); $("drawerBackdrop").classList.remove("open"); }
     $("barActions").onclick=openDrawer;
+    if ($("barTheme")) $("barTheme").onclick=()=>{
+      const eff = getEffectiveTheme(themeMode);
+      applyTheme(eff === "dark" ? "light" : "dark");
+    };
+
     $("closeDrawer").onclick=closeDrawer;
+    if ($("themeToggleBtn")) $("themeToggleBtn").onclick=()=>{
+      const eff = getEffectiveTheme(themeMode);
+      applyTheme(eff === "dark" ? "light" : "dark");
+    };
     $("drawerBackdrop").onclick=closeDrawer;
+
+    if ($("themeSelect")) $("themeSelect").onchange=()=>{
+      applyTheme($("themeSelect").value || "auto");
+    };
 
     /* ---------- Step accordion (only one open step) ---------- */
     const STEP_IDS = ["card0","card1","card2","card3","card4","cardOut"];
@@ -785,6 +914,21 @@
 
     /* ---------- Changelog ---------- */
     const CHANGELOG = [
+{
+  version: "v1.1.0",
+  user_visible_changes: [
+    "Dark mode + Auto theme (system) with one-tap toggle; theme is persisted locally and included in bundles.",
+    "Preset Manager in Actions drawer: filter + load + rename + delete user presets (built-ins are read-only).",
+    "Repro control: Lock run ID toggle (+ New run ID button) to make outputs reproducible across edits.",
+    "Output actions expanded: Copy JSON + Download prompt pack as .txt.",
+    "Schema panel now includes 'Validate Now' (runs validation against current state).",
+    "Fixed Sweeps button wiring (Run/Clear) and improved defensive state migrations (v1.0.x → v1.1.x)."
+  ],
+  non_user_visible_changes: [
+    "Theme variables refactor: all UI surfaces now derive colors from CSS tokens to prevent contrast bugs in dark mode.",
+    "Bundle format now round-trips appearance + reproducibility settings (theme_mode, lock_run_id)."
+  ]
+},
 {
   version: "v1.0.1",
   user_visible_changes: [
@@ -1055,7 +1199,10 @@ function uniqNorm(arr){
     const TEMPLATE_BASES = (function(){
       const base = {
         "ChatGPT Optimized": {
-          meta: { app_name: APP_NAME, schema_version: APP_VERSION, engine_target: "chatgpt", template_type: "chatgpt_optimized" },
+          meta: { app_name: APP_NAME,
+          themeMode,
+          lockRunId,
+ schema_version: APP_VERSION, engine_target: "chatgpt", template_type: "chatgpt_optimized" },
           prompt_profile: {
             mode: "photoreal",
             priority: ["composition","subject","clothing","accessories","lighting","background","style","camera","constraints"],
@@ -1757,11 +1904,15 @@ function ensureDefaultsForV1(doc){
   try{
     let raw = localStorage.getItem(LS_KEY);
     if (!raw){
-      // v0.8.x migration
-      raw = localStorage.getItem("promptforge_ris_user_presets_v080");
+      // v1.0.x migration
+      raw = localStorage.getItem("promptforge_ris_user_presets_v100");
       if (!raw){
-        // v0.7.x migration
-        raw = localStorage.getItem("promptforge_ris_user_presets_v070");
+        // v0.8.x migration
+        raw = localStorage.getItem("promptforge_ris_user_presets_v080");
+        if (!raw){
+          // v0.7.x migration
+          raw = localStorage.getItem("promptforge_ris_user_presets_v070");
+        }
       }
       if (raw) localStorage.setItem(LS_KEY, raw);
     }
@@ -1772,13 +1923,23 @@ function ensureDefaultsForV1(doc){
 }
     function saveUserPresets(p){ localStorage.setItem(LS_KEY, JSON.stringify(p)); }
 
+(p){ localStorage.setItem(LS_KEY, JSON.stringify(p)); }
+
 /* ---------- Run history (localStorage) ---------- */
 function loadRuns(){
   try{
     let raw = localStorage.getItem(LS_RUNS);
     if (!raw){
-      // v0.8.x migration
-      raw = localStorage.getItem("promptforge_ris_runs_v080");
+      // v1.0.x migration
+      raw = localStorage.getItem("promptforge_ris_runs_v100");
+      if (!raw){
+        // v0.8.x migration
+        raw = localStorage.getItem("promptforge_ris_runs_v080");
+        if (!raw){
+          // v0.7.x migration (if present)
+          raw = localStorage.getItem("promptforge_ris_runs_v070");
+        }
+      }
       if (raw) localStorage.setItem(LS_RUNS, raw);
     }
     if (!raw) return [];
@@ -1786,7 +1947,7 @@ function loadRuns(){
     return Array.isArray(parsed) ? parsed : [];
   }catch{ return []; }
 }
-function saveRuns(runs){
+(runs){
   localStorage.setItem(LS_RUNS, JSON.stringify(runs));
 }
 
@@ -2628,6 +2789,9 @@ function clearSweep(){
     let expertUnlocked = false;
     let godUnlocked = false;
 
+    let themeMode = "auto";
+    let lockRunId = false;
+
     let saveAsJson = false;
     let chatName = "";
     let purpose = "";
@@ -2678,6 +2842,91 @@ function clearSweep(){
           sel.appendChild(opt);
         });
       }
+      renderPresetManager();
+    }
+
+    function renderPresetManager(){
+      const box = $("presetManager");
+      if (!box) return;
+      const q = String($("presetSearch")?.value || "").toLowerCase().trim();
+
+      const users = loadUserPresets();
+      const builtins = BUILTIN_PRESETS.map(p=>({ name:p.name, builtin:true, preset:p.preset, saved_at:null }));
+      const all = builtins.concat(users.map(u=>({ name:u.name, builtin:false, preset:u.preset, saved_at:u.saved_at || null })));
+
+      const list = all.filter(p => !q || String(p.name).toLowerCase().includes(q));
+      box.innerHTML = "";
+
+      if (!list.length){
+        box.innerHTML = `<div class="small">No presets match.</div>`;
+        return;
+      }
+
+      list.forEach(item=>{
+        const row = document.createElement("div");
+        row.className = "listitem";
+
+        const left = document.createElement("div");
+        left.className = "liLeft";
+        const meta = item.builtin ? "Built-in" : ("User" + (item.saved_at ? ` • ${new Date(item.saved_at).toLocaleString()}` : ""));
+        left.innerHTML = `<div class="liTitle">${escapeHtml(item.name)}</div><div class="liMeta">${escapeHtml(meta)}</div>`;
+
+        const right = document.createElement("div");
+        right.className = "liRight";
+
+        const loadBtn = document.createElement("button");
+        loadBtn.className = "btn tiny";
+        loadBtn.textContent = "Load";
+        loadBtn.onclick = ()=>{
+          $("presetSelect").value = `${item.builtin ? "builtin" : "user"}:${item.name}`;
+          applyPresetFromSelection();
+          toast(`Preset loaded: ${item.name}`, "ok", "Presets");
+          closeDrawer();
+        };
+        right.appendChild(loadBtn);
+
+        if (!item.builtin){
+          const renBtn = document.createElement("button");
+          renBtn.className = "btn tiny";
+          renBtn.textContent = "Rename";
+          renBtn.onclick = ()=>{
+            const next = prompt("Rename preset", item.name);
+            const nn = String(next || "").trim();
+            if (!nn || nn === item.name) return;
+            const allNames = new Set(users.map(u=>u.name));
+            if (allNames.has(nn)){
+              toast("Name already exists", "err", "Presets");
+              return;
+            }
+            const idx = users.findIndex(u=>u.name === item.name);
+            if (idx >= 0){
+              users[idx].name = nn;
+              saveUserPresets(users);
+              populatePresets();
+              renderPresetManager();
+              toast("Preset renamed", "ok", "Presets");
+            }
+          };
+          right.appendChild(renBtn);
+
+          const delBtn = document.createElement("button");
+          delBtn.className = "btn tiny danger";
+          delBtn.textContent = "Delete";
+          delBtn.onclick = ()=>{
+            if (!confirm(`Delete preset "${item.name}"?`)) return;
+            const next = users.filter(u=>u.name !== item.name);
+            saveUserPresets(next);
+            populatePresets();
+            renderPresetManager();
+            toast("Preset deleted", "ok", "Presets");
+          };
+          right.appendChild(delBtn);
+        }
+
+        row.appendChild(left);
+        row.appendChild(right);
+        box.appendChild(row);
+      });
     }
 
     /* ---------- Step 0 init ---------- */
@@ -2804,6 +3053,40 @@ if ($("refSwitch")) $("refSwitch").onclick=()=>{
   setRefSwitch(!cur);
   toast(!cur ? "Reference images enabled" : "Reference images disabled", "ok", "Refs");
 };
+
+/* ---------- Run-id lock (repro) ---------- */
+function setRunIdLock(on){
+  lockRunId = !!on;
+  ensureDefaultsForV1(currentData);
+  if (lockRunId){
+    const cur = String(getByPath(currentData, "meta.run_id") || "").trim();
+    setByPath(currentData, "meta.run_id", cur || uuidv4());
+  }else{
+    // allow compile-time auto run_id
+    try{ deleteByPath(currentData, "meta.run_id"); }catch(_){}
+  }
+  const sw = $("runIdLockSwitch");
+  if (sw){
+    sw.classList.toggle("on", lockRunId);
+    sw.setAttribute("aria-checked", lockRunId ? "true" : "false");
+  }
+  refreshOutput();
+  saveState();
+}
+if ($("runIdLockSwitch")) $("runIdLockSwitch").onclick=()=>{
+  setRunIdLock(!lockRunId);
+  toast(lockRunId ? "Run ID locked" : "Run ID unlocked", "ok", "Repro");
+};
+if ($("newRunIdBtn")) $("newRunIdBtn").onclick=()=>{
+  ensureDefaultsForV1(currentData);
+  setByPath(currentData, "meta.run_id", uuidv4());
+  if (!lockRunId) setRunIdLock(true);
+  refreshOutput();
+  saveState();
+  toast("New run ID generated", "ok", "Repro");
+};
+
+
 
 /* ---------- Strict validation toggle ---------- */
 function setStrictSwitch(on){
@@ -3265,6 +3548,14 @@ function buildCanonicalDocForExport(){
   // Ensure v1 defaults and shims (refs, crop guards, constraint aliases, prompt_output.directive)
   ensureDefaultsForV1(out);
 
+  // reproducibility
+  if (!lockRunId){
+    try{ deleteByPath(out, "meta.run_id"); }catch(_){ }
+  }else{
+    const curRid = String(getByPath(out, "meta.run_id") || "").trim();
+    setByPath(out, "meta.run_id", curRid || uuidv4());
+  }
+
   // standard meta
   out.meta = out.meta || {};
   out.meta.app_name = APP_NAME;
@@ -3530,6 +3821,27 @@ $("copyPackBtn").onclick = async ()=>{
   const pack = lastDerived?.promptPack || buildCanonicalDocForExport().compiled.promptPack;
   const ok = await copyToClipboard(pack);
   ok ? toast("Copied prompt pack", "ok", "Output") : toast("Copy failed", "err", "Clipboard");
+};
+
+$("copyJsonBtn").onclick = async ()=>{
+  const { stripped } = buildCanonicalDocForExport();
+  const txt = JSON.stringify(stripped, null, 2);
+  const ok = await copyToClipboard(txt);
+  ok ? toast("Copied JSON", "ok", "Output") : toast("Copy failed", "err", "Clipboard");
+};
+
+$("downloadPackBtn").onclick = ()=>{
+  try{
+    const pack = lastDerived?.promptPack || buildCanonicalDocForExport().compiled.promptPack;
+    const blob = new Blob([pack], {type:"text/plain"});
+    const a=document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `promptforge_ris_promptpack_${Date.now()}.txt`;
+    document.body.appendChild(a); a.click(); a.remove();
+    toast("Downloaded .txt", "ok", "Output");
+  }catch(_){
+    toast("Download failed", "err", "Output");
+  }
 };
 
 $("saveRunBtn").onclick = ()=>{
@@ -3828,6 +4140,7 @@ if (parsedJson){
       toast("Preset saved", "ok", record.name);
     }
     $("savePresetBtn").onclick=savePresetAs;
+    if ($("presetSearch")) $("presetSearch").oninput=()=>renderPresetManager();
 
     /* ---------- Import/Export ---------- */
     function exportJSONFile(){
@@ -3955,6 +4268,9 @@ if (parsedJson){
           auto_save_runs: autoSaveRuns,
           strict_validation: strictValidation,
 
+          theme_mode: themeMode,
+          lock_run_id: lockRunId,
+
           step_open: getStepOpenState()
         },
         current_data: currentData,
@@ -4036,6 +4352,10 @@ if (parsedJson){
           autoSaveRuns = !!bundle.state?.auto_save_runs;
           strictValidation = bundle.state?.strict_validation !== undefined ? !!bundle.state.strict_validation : true;
 
+          themeMode = normalizeThemeMode(bundle.state?.theme_mode || bundle.state?.themeMode || localStorage.getItem(LS_THEME) || "auto");
+          applyTheme(themeMode, {persist:true, quiet:true});
+          lockRunId = !!bundle.state?.lock_run_id;
+
           if ($("diffSwitch")) {
             $("diffSwitch").classList.toggle("on", showOnlyModified);
             $("diffSwitch").setAttribute("aria-checked", showOnlyModified ? "true" : "false");
@@ -4048,10 +4368,19 @@ if (parsedJson){
             $("strictSwitch").classList.toggle("on", strictValidation);
             $("strictSwitch").setAttribute("aria-checked", strictValidation ? "true" : "false");
           }
+          if ($("runIdLockSwitch")) {
+            $("runIdLockSwitch").classList.toggle("on", lockRunId);
+            $("runIdLockSwitch").setAttribute("aria-checked", lockRunId ? "true" : "false");
+          }
+
 
           // Restore doc + baseline (prefer bundle-provided baseline; else baseline = imported doc)
           if (bundle.current_data && typeof bundle.current_data === "object") currentData = bundle.current_data;
           ensureDefaultsForV1(currentData);
+        if (lockRunId){
+          const curRid = String(getByPath(currentData, "meta.run_id") || "").trim();
+          setByPath(currentData, "meta.run_id", curRid || uuidv4());
+        }
 
           if (bundle.base_data && typeof bundle.base_data === "object") baseData = bundle.base_data;
           else baseData = deepClone(currentData);
@@ -4225,6 +4554,7 @@ if (parsedJson){
           }
         };
         localStorage.setItem(LS_STATE, JSON.stringify(s));
+        try{ localStorage.setItem(LS_THEME, themeMode); }catch(_){ }
       }catch(_){}
     }
 
@@ -4232,11 +4562,15 @@ if (parsedJson){
       try{
         let raw = localStorage.getItem(LS_STATE);
         if (!raw){
-          // v0.8.x migration
-          raw = localStorage.getItem("promptforge_ris_state_v080");
+          // v1.0.x migration
+          raw = localStorage.getItem("promptforge_ris_state_v100");
           if (!raw){
-            // v0.7.x migration
-            raw = localStorage.getItem("promptforge_ris_state_v070");
+            // v0.8.x migration
+            raw = localStorage.getItem("promptforge_ris_state_v080");
+            if (!raw){
+              // v0.7.x migration
+              raw = localStorage.getItem("promptforge_ris_state_v070");
+            }
           }
           if (raw) localStorage.setItem(LS_STATE, raw);
         }
@@ -4250,6 +4584,11 @@ if (parsedJson){
         godUnlocked = !!s.godUnlocked;
         showOnlyModified = !!s.showOnlyModified;
         autoSaveRuns = !!s.autoSaveRuns;
+
+        themeMode = (s.themeMode || localStorage.getItem(LS_THEME) || "auto");
+        lockRunId = !!s.lockRunId;
+
+        applyTheme(themeMode, {persist:false, quiet:true});
 
         strictValidation = s.strictValidation !== undefined ? !!s.strictValidation : true;
 
@@ -4267,8 +4606,16 @@ if (parsedJson){
           $("strictSwitch").classList.toggle("on", strictValidation);
           $("strictSwitch").setAttribute("aria-checked", strictValidation ? "true" : "false");
         }
+        if ($("runIdLockSwitch")) {
+          $("runIdLockSwitch").classList.toggle("on", lockRunId);
+          $("runIdLockSwitch").setAttribute("aria-checked", lockRunId ? "true" : "false");
+        }
         if (s.currentData && typeof s.currentData === "object") currentData = s.currentData;
         ensureDefaultsForV1(currentData);
+        if (lockRunId){
+          const curRid = String(getByPath(currentData, "meta.run_id") || "").trim();
+          setByPath(currentData, "meta.run_id", curRid || uuidv4());
+        }
         if ($("refSwitch")) {
           const ri = !!getByPath(currentData, "references.images_included");
           $("refSwitch").classList.toggle("on", ri);
@@ -4349,11 +4696,14 @@ if (parsedJson){
     if ($("macroSkinBtn")) $("macroSkinBtn").onclick=()=> macroSkinRealism();
     if ($("macroIdentityBtn")) $("macroIdentityBtn").onclick=()=> macroIdentityLock();
 
-    if ($("sweepRunBtn")) $("sweepRunBtn").onclick=()=> runSweep();
-    if ($("sweepClearBtn")) $("sweepClearBtn").onclick=()=> clearSweep();
+    if ($("runSweepBtn")) $("runSweepBtn").onclick=()=> runSweep();
+    if ($("clearSweepBtn")) $("clearSweepBtn").onclick=()=> clearSweep();
 
     /* ---------- Init ---------- */
     function init(){
+      // Apply theme early (avoid flash)
+      applyTheme(localStorage.getItem(LS_THEME) || themeMode || "auto", {persist:false, quiet:true});
+
       renderChangelog();
       Object.values(TEMPLATE_BASES).forEach(t => { ensureMetaForAllLeafPaths(t); ensureDefaultsForV1(t); });
 
