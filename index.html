@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>PromptForge RIS v1.1.0 (Single-file)</title>
+  <title>PromptForge RIS v1.1.1 (Single-file)</title>
   <style>
 
     :root{
@@ -329,7 +329,7 @@
   <header>
     <div class="headrow">
       <div class="titlewrap">
-        <h1>PromptForge RIS v1.1.0 (Offline)</h1>
+        <h1>PromptForge RIS v1.1.1 (Offline)</h1>
         <div class="subtitle">PromptForge, Regenerative Image System • Brave/Firefox compatible</div>
       </div>
       <button class="btn small iconBtn" id="themeToggleBtn" title="Toggle theme">☀</button>
@@ -788,7 +788,7 @@
 
   <script>
     /* =========================================================
-      PromptForge RIS v1.1.0 (Single-file)
+      PromptForge RIS v1.1.1 (Single-file)
       USER_VISIBLE_CHANGES:
       - Step 0 “Merge & Seed”: Name + Purpose + Prompt + JSON merge + copy + upload
       - Step 0: Inject toggle + Detect template toggle
@@ -803,7 +803,7 @@
     ========================================================= */
 
     const APP_NAME = "PromptForge RIS";
-    const APP_VERSION = "v1.1.0-singlefile";
+    const APP_VERSION = "v1.1.1-singlefile";
 
     const LS_KEY = "promptforge_ris_user_presets_v110";
     const LS_STATE = "promptforge_ris_state_v110";
@@ -915,7 +915,7 @@ if (MQL_DARK && MQL_DARK.addEventListener){
     /* ---------- Changelog ---------- */
     const CHANGELOG = [
 {
-  version: "v1.1.0",
+  version: "v1.1.1",
   user_visible_changes: [
     "Dark mode + Auto theme (system) with one-tap toggle; theme is persisted locally and included in bundles.",
     "Preset Manager in Actions drawer: filter + load + rename + delete user presets (built-ins are read-only).",
@@ -1923,8 +1923,6 @@ function ensureDefaultsForV1(doc){
 }
     function saveUserPresets(p){ localStorage.setItem(LS_KEY, JSON.stringify(p)); }
 
-(p){ localStorage.setItem(LS_KEY, JSON.stringify(p)); }
-
 /* ---------- Run history (localStorage) ---------- */
 function loadRuns(){
   try{
@@ -1947,7 +1945,7 @@ function loadRuns(){
     return Array.isArray(parsed) ? parsed : [];
   }catch{ return []; }
 }
-(runs){
+function saveRuns(runs){
   localStorage.setItem(LS_RUNS, JSON.stringify(runs));
 }
 
