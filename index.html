@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>PromptForge RIS v1.1.5 (Single-file)</title>
+  <title>PromptForge RIS v1.2.1 (Single-file)</title>
   <style>
 
     :root{
       color-scheme: light;
-      --bg:#f6f7f9; --card:#ffffff; --text:#111111; --muted:#667085;
-      --border:#e3e6ea; --border2:#d5d9df; --accent:#111111; --onAccent:#ffffff;
+      --bg:#FFFFFF; --card:#ffffff; --text:#444444; --muted:#6b7280;
+      --border:#e3e6ea; --border2:#d5d9df; --accent:#ea4c89; --onAccent:#FFFFFF;
       --panel:#f2f4f7; --panel2:#fbfbfc; --ghost:#f7f7f7;
       --ok:#067647; --err:#b42318;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
@@ -18,8 +18,8 @@
     }
     :root[data-theme="dark"]{
       color-scheme: dark;
-      --bg:#0c0d10; --card:#14161c; --text:#f2f3f5; --muted:#a5acb8;
-      --border:#2a2f3a; --border2:#3a4252; --accent:#f2f3f5; --onAccent:#0c0d10;
+      --bg:#000000; --card:#0b0b0b; --text:#ECECEC; --muted:#b7b7b7;
+      --border:#2a2f3a; --border2:#3a4252; --accent:#f79aaf; --onAccent:#000000;
       --panel:#1b1f27; --panel2:#161a22; --ghost:#1a1e25;
       --ok:#34d399; --err:#fb7185;
     }
@@ -148,7 +148,7 @@
 
     /* Form */
     .row{ display:grid; grid-template-columns: 1fr; gap:6px; margin: 10px 0; }
-    label{ font-weight:900; font-size: 12px; color:#222; }
+    label{ font-weight:900; font-size: 12px; color: var(--text); }
     select,input,textarea{
       width:100%;
       border: 1px solid var(--border2);
@@ -328,8 +328,9 @@
 
   <header>
     <div class="headrow">
+      <button class="btn small iconBtn" id="hamburgerBtn" title="Menu" aria-label="Menu">☰</button>
       <div class="titlewrap">
-        <h1>PromptForge RIS v1.1.5 (Offline)</h1>
+        <h1 id="appTitle"></h1>
         <div class="subtitle">PromptForge, Regenerative Image System • Brave/Firefox compatible</div>
       </div>
       <span id="diagBadgeHost" class="pill small" style="display:none;margin-right:8px;align-items:center;gap:6px"></span>
@@ -484,89 +485,7 @@
   </aside>
 
   <main class="app">
-
-    <!-- STEP 0 -->
-    <details class="card" id="card0">
-      <summary>
-        <span class="sumLeft">Step 0 — Merge & Seed</span>
-        <span class="sumRight">Merge Name + Prompt + JSON</span>
-      </summary>
-      <div class="section">
-
-        <div class="row grid2">
-          <label>Image Type</label>
-          <select id="imageTypeSelect"></select>
-        </div>
-
-        <div class="row grid2" id="customTypeRow" style="display:none">
-          <label>Custom Image Type</label>
-          <input id="customImageTypeName" placeholder="e.g., Architectural interior photo" />
-        </div>
-
-        <div class="row grid2" id="customPromptRow" style="display:none">
-          <label>Custom Prompt Template</label>
-          <textarea id="customImageTypePrompt" placeholder="Custom extractor prompt template..."></textarea>
-        </div>
-
-        <div class="row grid2">
-          <label>NAME</label>
-          <input id="step0Name" placeholder="Chat name / task name" />
-        </div>
-
-        <div class="row grid2">
-          <label>PURPOSE</label>
-          <input id="step0Purpose" placeholder="What this chat/output is for" />
-        </div>
-
-        <div class="row">
-          <label>PROMPT</label>
-          <textarea id="step0Prompt" placeholder="Freeform prompt text (seed)."></textarea>
-          <div class="help-inline">Used as a seed. When injected, it populates <code>prompt_output.user_prefix</code> (keeps assembler intact).</div>
-        </div>
-
-        <div class="row">
-          <label>JSON</label>
-          <textarea id="step0Json" placeholder="Paste JSON here, or use Upload JSON."></textarea>
-          <div class="outActions">
-            <button class="btn" id="uploadStep0JsonBtn">Upload JSON</button>
-            <button class="btn ghost" id="clearStep0JsonBtn">Clear JSON</button>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="toggleRow">
-            <div>
-              <b>Inject into current state</b>
-              <div class="help-inline">ON: Merge+Inject updates the tool state. OFF: Merge only produces merged output text.</div>
-            </div>
-            <div class="switch" id="injectSwitch" role="switch" aria-checked="true"><div class="knob"></div></div>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="toggleRow">
-            <div>
-              <b>Detect template from JSON</b>
-              <div class="help-inline">ON: auto-select template based on JSON keys/meta.</div>
-            </div>
-            <div class="switch on" id="detectSwitch" role="switch" aria-checked="true"><div class="knob"></div></div>
-          </div>
-        </div>
-
-        <div class="outActions">
-          <button class="btn primary" id="mergeBtn">Merge</button>
-          <button class="btn" id="copyMergedBtn">Copy Merged OUTPUT</button>
-        </div>
-
-        <div class="codewrap">
-          <pre><code id="mergedOut"></code></pre>
-        </div>
-
-        <div class="help-inline" id="status0"></div>
-      </div>
-    </details>
-
-    <!-- STEP 1 -->
+<!-- STEP 1 -->
     <details class="card" id="card1" open>
       <summary>
         <span class="sumLeft">Step 1 — Preset Driven</span>
@@ -615,13 +534,7 @@
   <option value="debug">Debug</option>
 </select>
         </div>
-
-        <div class="outActions">
-          <button class="btn primary" id="applyTemplateBtn">Apply Template</button>
-          <button class="btn primary" id="applyPresetBtn">Apply Preset (auto-generate)</button>
-        </div>
-
-        <div class="help-inline" id="status1"></div>
+<div class="help-inline" id="status1"></div>
       </div>
     </details>
 
@@ -686,35 +599,7 @@
         <div class="help-inline" id="status2"></div>
       </div>
     </details>
-
-    <!-- STEP 3 -->
-    <details class="card" id="card3">
-      <summary>
-        <span class="sumLeft">Step 3 — Expert Mode (All Settings)</span>
-        <span class="sumRight" id="expertHint">Locked</span>
-      </summary>
-      <div class="section" id="expertBody">
-        <div class="help-inline">All schema fields (excluding “Common Fields”). Use search + jump.</div>
-
-        <div class="row grid2">
-          <label>Search + Jump</label>
-          <div>
-            <input id="fieldSearch" placeholder="Type to filter fields (label/path)..." />
-            <div class="help-inline">Enter: jump to first match.</div>
-          </div>
-        </div>
-
-        <div id="expertFields"></div>
-
-        <div class="outActions">
-          <button class="btn primary" id="unlockGodBtn">Unlock God Mode</button>
-        </div>
-
-        <div class="help-inline" id="status3"></div>
-      </div>
-    </details>
-
-    <!-- STEP 4 -->
+<!-- STEP 4 -->
     <details class="card" id="card4" style="display:none">
       <summary>
         <span class="sumLeft">Step 4 — God Mode (Ultra Elite)</span>
@@ -780,16 +665,16 @@
   <!-- Sticky bottom navbar -->
   <div class="actionbar" role="toolbar" aria-label="Quick actions">
     <button class="pill primary" id="barGenerate">Generate</button>
-    <button class="pill" id="barCopy">Copy</button>
-    <button class="pill small" id="barActions">Actions</button>
-    <button class="pill small" id="barTheme" title="Toggle theme">☀</button>
+    <button class="pill" id="barCopy" title="Copy prompt + JSON to clipboard">Copy</button>
+    <button class="pill small" id="barImport" title="Import Template and/or Preset">Import</button>
+    <button class="pill small" id="barApply" title="Apply selected template/preset + output settings">Apply Changes</button>
   </div>
 
   <datalist id="schemaPathList"></datalist>
 
   <script>
     /* =========================================================
-      PromptForge RIS v1.1.5 (Single-file)
+      PromptForge RIS v1.2.1 (Single-file)
       USER_VISIBLE_CHANGES:
       - Step 0 “Merge & Seed”: Name + Purpose + Prompt + JSON merge + copy + upload
       - Step 0: Inject toggle + Detect template toggle
@@ -804,7 +689,7 @@
     ========================================================= */
 
     const APP_NAME = "PromptForge RIS";
-    const APP_VERSION = "v1.2.0-singlefile";
+    const APP_VERSION = "v1.2.1-singlefile";
 
     const LS_KEY = "promptforge_ris_user_presets_v110";
     const LS_STATE = "promptforge_ris_state_v110";
@@ -855,6 +740,8 @@ if (MQL_DARK && MQL_DARK.addEventListener){
   MQL_DARK.addEventListener("change", ()=>{
     if (normalizeThemeMode(themeMode) === "auto"){
       applyTheme("auto", {persist:false, quiet:true});
+
+      if ($("appTitle")) $("appTitle").textContent = `${APP_NAME} ${APP_VERSION} (Offline)`;
     }
   });
 }
@@ -999,13 +886,10 @@ const deepClone = (o)=>JSON.parse(JSON.stringify(o));
     /* ---------- Drawer ---------- */
     function openDrawer(){ $("drawer").classList.add("open"); $("drawerBackdrop").classList.add("open"); }
     function closeDrawer(){ $("drawer").classList.remove("open"); $("drawerBackdrop").classList.remove("open"); }
-    $("barActions").onclick=openDrawer;
-    if ($("barTheme")) $("barTheme").onclick=()=>{
-      const eff = getEffectiveTheme(themeMode);
-      applyTheme(eff === "dark" ? "light" : "dark");
-    };
-
-    $("closeDrawer").onclick=closeDrawer;
+    if ($("hamburgerBtn")) $("hamburgerBtn").onclick=openDrawer;
+    if ($("barImport")) $("barImport").onclick=importTemplateOrPresetFromPicker;
+    if ($("barApply")) $("barApply").onclick=applyChanges;
+$("closeDrawer").onclick=closeDrawer;
     if ($("themeToggleBtn")) $("themeToggleBtn").onclick=()=>{
       const eff = getEffectiveTheme(themeMode);
       applyTheme(eff === "dark" ? "light" : "dark");
@@ -1033,6 +917,19 @@ const deepClone = (o)=>JSON.parse(JSON.stringify(o));
 
     /* ---------- Changelog ---------- */
     const CHANGELOG = [
+{
+  'version': 'v1.2.1',
+  'user_visible_changes': [
+    'New header hamburger menu opens Actions drawer (replaces bottom Actions/Theme buttons).',
+    'Simplified bottom bar: Generate, Copy, Import, Apply Changes.',
+    'Removed Step 0/3/4 from UI; removed Step 1 apply buttons (use Apply Changes).',
+    'Theme palettes updated (Dark: #000/#f79aaf/#ECECEC; Light: #FFF/#ea4c89/#444444).'
+  ],
+  'technical_notes': [
+    'Added PFIS/RIS/external JSON import flow for Template/Preset with permission-gated conversion.'
+  ]
+},
+
 {
   version: "v1.2.0",
   user_visible_changes: [
@@ -2201,10 +2098,9 @@ function renderRunsDrawer(){
           baseData = deepClone(TEMPLATE_BASES[r.template]);
           $("templateSelect").value = r.template;
           $("templateDesc").textContent = TEMPLATE_INFO[r.template] || "";
-          refreshStep4Visibility();
-        }
+          }
         currentData = deepClone(r.doc || {});
-        renderStep2(); renderStep3(); renderStep4();
+        renderStep2(); if ($("card3")) renderStep3(); if ($("card4")) renderStep4();
         refreshOutput();
         saveState();
         toast("Loaded run", "ok", r.run_id || "run");
@@ -2759,28 +2655,28 @@ function macroHandsSafe(){
   ["include hands", "accurate hands and fingers", "no hand deformation"].forEach(addHard);
   ["extra fingers","warped hands","deformed hands"].forEach(addNeg);
   toast("Applied Hands-safe", "ok", "Macro");
-  renderStep2(); renderStep3(); renderStep4(); refreshOutput(); saveState();
+  renderStep2(); if ($("card3")) renderStep3(); if ($("card4")) renderStep4(); refreshOutput(); saveState();
 }
 
 function macroNoTextStrict(){
   ["no text","no logos","no watermarks","no signature","no captions"].forEach(addHard);
   ["text","watermark","logo","signature"].forEach(addNeg);
   toast("Applied No-text strict", "ok", "Macro");
-  renderStep2(); renderStep3(); renderStep4(); refreshOutput(); saveState();
+  renderStep2(); if ($("card3")) renderStep3(); if ($("card4")) renderStep4(); refreshOutput(); saveState();
 }
 
 function macroSkinRealism(){
   ["natural skin texture","visible pores","subsurface scattering","realistic micro-contrast","accurate skin shading"].forEach(addHard);
   ["plastic skin","over-smoothed skin","airbrushed skin","waxy skin"].forEach(addNeg);
   toast("Applied Skin realism", "ok", "Macro");
-  renderStep2(); renderStep3(); renderStep4(); refreshOutput(); saveState();
+  renderStep2(); if ($("card3")) renderStep3(); if ($("card4")) renderStep4(); refreshOutput(); saveState();
 }
 
 function macroIdentityLock(){
   setByPath(currentData, "identity.identity_strength", "strict");
   addHard("strict identity lock");
   toast("Applied Identity lock", "ok", "Macro");
-  renderStep2(); renderStep3(); renderStep4(); refreshOutput(); saveState();
+  renderStep2(); if ($("card3")) renderStep3(); if ($("card4")) renderStep4(); refreshOutput(); saveState();
 }
 
 function coerceSweepValue(path, raw){
@@ -3128,6 +3024,7 @@ function clearSweep(){
     /* ---------- Step 0 init ---------- */
     (function initStep0(){
       const sel = $("imageTypeSelect");
+      if (!sel) return;
       Object.keys(IMAGE_ANALYSIS_PROMPTS).forEach(k=>{
         const opt=document.createElement("option");
         opt.value=k; opt.textContent=k;
@@ -3144,7 +3041,7 @@ function clearSweep(){
       updateCustomVisibility();
 
       // Upload JSON uses shared hidden file input
-      $("uploadStep0JsonBtn").onclick=()=>{
+      if ($("uploadStep0JsonBtn")) $("uploadStep0JsonBtn").onclick=()=>{
         const fi = $("fileInput");
         fi.onchange = async ()=>{
           try{
@@ -3162,7 +3059,7 @@ function clearSweep(){
         fi.click();
       };
 
-      $("clearStep0JsonBtn").onclick=()=>{
+      if ($("clearStep0JsonBtn")) $("clearStep0JsonBtn").onclick=()=>{
         $("step0Json").value = "";
         toast("Cleared Step 0 JSON", "ok", "Step 0");
       };
@@ -3174,7 +3071,7 @@ function clearSweep(){
         $("injectSwitch").setAttribute("aria-checked", step0Inject ? "true" : "false");
         saveState();
       }
-      $("injectSwitch").onclick=()=> setInject(!step0Inject);
+      if ($("injectSwitch")) $("injectSwitch").onclick=()=> setInject(!step0Inject);
       setInject(true);
 
       // Detect toggle
@@ -3184,11 +3081,11 @@ function clearSweep(){
         $("detectSwitch").setAttribute("aria-checked", step0Detect ? "true" : "false");
         saveState();
       }
-      $("detectSwitch").onclick=()=> setDetect(!step0Detect);
+      if ($("detectSwitch")) $("detectSwitch").onclick=()=> setDetect(!step0Detect);
       setDetect(true);
 
       // Copy merged
-      $("copyMergedBtn").onclick=async ()=>{
+      if ($("copyMergedBtn")) $("copyMergedBtn").onclick=async ()=>{
         const txt = $("mergedOut").textContent || "";
         if (!txt.trim()){ toast("Nothing to copy", "err", "Step 0"); return; }
         const ok = await copyToClipboard(txt);
@@ -3227,7 +3124,7 @@ function setDiffSwitch(on){
     sw.classList.toggle("on", showOnlyModified);
     sw.setAttribute("aria-checked", showOnlyModified ? "true" : "false");
   }
-  renderStep2(); renderStep3(); renderStep4();
+  renderStep2(); if ($("card3")) renderStep3(); if ($("card4")) renderStep4();
   saveState();
 }
 if ($("diffSwitch")) $("diffSwitch").onclick=()=> setDiffSwitch(!showOnlyModified);
@@ -3633,6 +3530,7 @@ function renderStep2(){
     }
 
     function renderStep3(){
+      if (!$("card3")) return;
       const expertFieldsEl = $("expertFields");
       expertFieldsEl.innerHTML = "";
 
@@ -3652,6 +3550,7 @@ function renderStep2(){
     }
 
     function renderStep4(){
+      if (!$("card4")) return;
       const godFieldsEl = $("godFields");
       godFieldsEl.innerHTML = "";
       if (!isUltraEliteTemplate()) return;
@@ -3686,8 +3585,7 @@ function renderStep2(){
       currentData.meta.schema_version = APP_VERSION;
 
       $("templateDesc").textContent = TEMPLATE_INFO[currentTemplateName] || "";
-      refreshStep4Visibility();
-      renderStep2(); renderStep3(); renderStep4();
+      renderStep2(); if ($("card3")) renderStep3(); if ($("card4")) renderStep4();
       refreshOutput();
       saveState();
     }
@@ -3732,7 +3630,6 @@ function renderStep2(){
 
         $("templateSelect").value = currentTemplateName;
         $("templateDesc").textContent = TEMPLATE_INFO[currentTemplateName] || "";
-        refreshStep4Visibility();
         toast("Template switched to Ultra Elite", "ok", "God Mode");
       }
     }
@@ -4024,10 +3921,28 @@ $("saveFileBtn").onclick=saveFileWithLogic;
     };
 
     $("barCopy").onclick=async ()=>{
-      const txt = $("outMain").textContent || "";
-      if (!txt.trim()){ toast("Nothing to copy", "err", "Copy"); return; }
-      const ok = await copyToClipboard(txt);
-      ok ? toast("Copied", "ok", "Copy") : toast("Copy failed", "err", "Clipboard");
+      try{
+        const built = buildCanonicalDocForExport();
+        const prompt = String(built.prompt || built.text || "").trim();
+        const json = String(built.json || "").trim();
+        const parts = [];
+        if (prompt) parts.push("PROMPT
+" + prompt);
+        if (json) parts.push("JSON
+" + json);
+        const payload = parts.join("
+
+");
+        if (!payload.trim()){ toast("Nothing to copy", "err", "Copy"); return; }
+        const ok = await copyToClipboard(payload);
+        ok ? toast("Copied prompt + JSON", "ok", "Copy") : toast("Copy failed", "err", "Clipboard");
+      }catch(e){
+        __PF_DIAG.add("barCopy", e);
+        const txt = $("outMain")?.textContent || "";
+        if (!txt.trim()){ toast("Nothing to copy", "err", "Copy"); return; }
+        const ok = await copyToClipboard(txt);
+        ok ? toast("Copied", "ok", "Copy") : toast("Copy failed", "err", "Clipboard");
+      }
     };
 // Output helpers
 $("copyPackBtn").onclick = async ()=>{
@@ -4097,16 +4012,16 @@ $("clearRunsBtn").onclick = ()=>{
 
 
     /* ---------- Step 1 buttons ---------- */
-    $("applyTemplateBtn").onclick=()=>{
+    if ($("applyTemplateBtn")) $("applyTemplateBtn").onclick=()=>{
       const name = $("templateSelect").value;
       applyTemplate(name);
       toast("Applied template", "ok", name);
     };
 
-    $("applyPresetBtn").onclick=()=>{
+    if ($("applyPresetBtn")) $("applyPresetBtn").onclick=()=>{
       applyPresetFromSelection();
       baseData = deepClone(currentData);
-      renderStep2(); renderStep3(); renderStep4();
+      renderStep2(); if ($("card3")) renderStep3(); if ($("card4")) renderStep4();
       refreshOutput();
       toast("Applied preset + generated output", "ok", ($("presetSelect").value||"").replace(/^.*:/,""));
       saveState();
@@ -4121,7 +4036,7 @@ $("clearRunsBtn").onclick = ()=>{
     /* ---------- Locks ---------- */
     $("unlockExpertBtn").onclick=()=>{
       expertUnlocked = true;
-      renderStep3(); renderStep4();
+      if ($("card3")) renderStep3(); if ($("card4")) renderStep4();
       toast("Expert Mode unlocked", "ok", "Step 3");
       saveState();
     };
@@ -4130,7 +4045,7 @@ $("clearRunsBtn").onclick = ()=>{
       migrateToUltraElitePreservingSettings();
       expertUnlocked = true;
       godUnlocked = true;
-      renderStep2(); renderStep3(); renderStep4();
+      renderStep2(); if ($("card3")) renderStep3(); if ($("card4")) renderStep4();
       refreshOutput();
       toast("God Mode unlocked", "ok", "Step 4");
       saveState();
@@ -4253,12 +4168,12 @@ if (parsedJson){
   if (coercions.length) toast(`Coerced ${coercions.length} field(s)`, "ok", "Step 0");
 }
 
-      renderStep2(); renderStep3(); renderStep4();
+      renderStep2(); if ($("card3")) renderStep3(); if ($("card4")) renderStep4();
       refreshOutput();
       saveState();
     }
 
-    $("mergeBtn").onclick=()=>{
+    if ($("mergeBtn")) $("mergeBtn").onclick=()=>{
       const typeSel = $("imageTypeSelect").value;
       const isCustom = typeSel === "Custom";
       const name = ($("step0Name").value || "").trim();
@@ -4356,6 +4271,176 @@ if (parsedJson){
     if ($("presetSearch")) $("presetSearch").oninput=()=>renderPresetManager();
 
     /* ---------- Import/Export ---------- */
+
+    /* ---------- Apply Changes (template/preset + output settings) ---------- */
+    function applyChanges(){
+      // Apply selected template first (if any), then preset overlay, then enforce requested output settings.
+      const tName = ($("templateSelect") && $("templateSelect").value) ? $("templateSelect").value : currentTemplateName;
+      if (tName && TEMPLATE_BASES[tName]){
+        applyTemplate(tName);
+      }
+
+      // Apply preset selection (if any)
+      if ($("presetSelect") && $("presetSelect").value){
+        try{ applyPresetFromSelection(); }catch(e){ __PF_DIAG.add("applyPresetFromSelection", e); }
+      }
+
+      // Enforce output toggles: include master_prompt and choose output mode if present.
+      if ($("masterSwitch")) setSwitch($("masterSwitch"), true);
+      if ($("outputMode")){
+        const want = "master_prompt_and_json";
+        if ([...$("outputMode").options].some(o=>o.value===want)) $("outputMode").value = want;
+      }
+
+      baseData = deepClone(currentData);
+      renderStep2();
+      refreshOutput();
+      saveState();
+      toast("Applied changes", "ok", tName || "Template");
+    }
+
+    /* ---------- Import Template and/or Preset ---------- */
+    function isPFIS(obj){
+      return !!obj && typeof obj === "object" && !Array.isArray(obj) && typeof obj.pfis_version === "string" && !!obj.prompt;
+    }
+    function isRISDoc(obj){
+      return !!obj && typeof obj === "object" && !Array.isArray(obj) && String(obj?.meta?.schema_id||"") === SCHEMA_ID_V1;
+    }
+    function mapPFISToRIS(pfis){
+      // Best-effort conversion: compile PFIS blocks into RIS fields; preserve full PFIS in meta._import.
+      const doc = deepClone(TEMPLATE_BASES["ChatGPT Optimized"]);
+      ensureDefaultsForV1(doc);
+      doc.meta = doc.meta || {};
+      doc.meta.imported_from = "PFIS";
+      doc.meta.imported_at = new Date().toISOString();
+      doc.meta._import = pfis;
+
+      // modeling
+      if (pfis.modeling?.aspect_ratio) doc.output_specs.aspect_ratio = String(pfis.modeling.aspect_ratio);
+
+      // subject entity → basic fields
+      const ent = Array.isArray(pfis?.scene?.subject?.entities) ? pfis.scene.subject.entities[0] : null;
+      if (ent){
+        const a = ent.attributes || {};
+        if (a.age) doc.subject.age = String(a.age);
+        if (a.gender_presentation) doc.subject.gender = String(a.gender_presentation);
+        if (a.ethnicity) doc.subject.ethnicity = String(a.ethnicity);
+        if (a.hair) doc.subject.hair.details = String(a.hair);
+        if (a.eyes) doc.subject.eyes.color = String(a.eyes);
+        if (ent.expression) doc.subject.expression = String(ent.expression);
+        if (ent.pose) doc.composition.framing = String(ent.pose);
+      }
+
+      // compile prompt blocks
+      const blocks = Array.isArray(pfis?.prompt?.positive?.blocks) ? pfis.prompt.positive.blocks : [];
+      const compiled = blocks
+        .filter(b=>b && b.enabled!==false)
+        .map(b=>{
+          const toks = Array.isArray(b.tokens) ? b.tokens : [];
+          const tt = toks.filter(t=>t && t.enabled!==false).map(t=>String(t.text||"").trim()).filter(Boolean);
+          return tt.join(", ");
+        })
+        .filter(Boolean)
+        .join(", ");
+
+      if (compiled) doc.prompt_output.user_prefix = compiled;
+
+      // negative
+      const negItems = Array.isArray(pfis?.prompt?.negative?.items) ? pfis.prompt.negative.items : [];
+      const neg = negItems.filter(n=>n && n.enabled!==false).map(n=>String(n.text||"").trim()).filter(Boolean);
+      if (neg.length){
+        doc.prompt_output.negative_prompt = neg.join(", ");
+        doc.constraints.avoid = neg.slice();
+        doc.constraints.negative = neg.slice();
+      }
+      return doc;
+    }
+
+    function importTemplateOrPresetFromPicker(){
+      const fi = document.createElement("input");
+      fi.type="file";
+      fi.accept="application/json";
+      fi.onchange=async ()=>{
+        const f = fi.files && fi.files[0];
+        if (!f) return;
+        try{
+          const txt = await f.text();
+          const parsed = JSON.parse(txt);
+
+          let mode = "preset";
+          let doc = null;
+          let templateName = null;
+
+          // PFIS
+          if (isPFIS(parsed)){
+            mode = parsed?.template?.is_template ? "template" : "preset";
+            doc = mapPFISToRIS(parsed);
+          }else if (isRISDoc(parsed)){
+            // If it already is an RIS doc, treat as preset unless flagged
+            mode = parsed?.template?.is_template ? "template" : "preset";
+            doc = parsed;
+          }else{
+            // External JSON requires explicit permission to convert
+            const ok = confirm("This file is not a PromptForge (PFIS/RIS) document. Allow automatic conversion to an editable PromptForge format?");
+            if (!ok){
+              toast("Import aborted", "err", "No permission");
+              return;
+            }
+            const mapped = mapExternalJsonToRIS(parsed);
+            if (!mapped || !mapped.doc){
+              toast("Import failed", "err", "Unsupported JSON");
+              return;
+            }
+            mode = "preset";
+            doc = mapped.doc;
+            templateName = mapped.template || null;
+          }
+
+          // Apply/import based on mode
+          if (mode === "template"){
+            // Register as a new template (in-memory; persists via export bundle)
+            const title = String(parsed?.meta?.title || parsed?.meta?.name || parsed?.title || "Imported Template").trim();
+            const unique = Math.random().toString(16).slice(2,6).toUpperCase();
+            const name = `Imported: ${title} (${unique})`;
+            TEMPLATE_BASES[name] = deepClone(doc);
+            TEMPLATE_INFO[name] = "Imported template";
+            try{ ensureMetaForAllLeafPaths(TEMPLATE_BASES[name]); ensureDefaultsForV1(TEMPLATE_BASES[name]); }catch(_){}
+            inferSchemaRegistry();
+            populateTemplates();
+            if ($("templateSelect")){
+              $("templateSelect").value = name;
+              currentTemplateName = name;
+              applyTemplate(name);
+              renderStep2(); refreshOutput(); saveState();
+            }
+            toast("Imported template", "ok", name);
+            return;
+          }
+
+          // preset: save overlay to user preset store
+          const baseName = templateName || currentTemplateName || ($("templateSelect") ? $("templateSelect").value : "ChatGPT Optimized");
+          const base = deepClone(TEMPLATE_BASES[baseName] || TEMPLATE_BASES["ChatGPT Optimized"]);
+          ensureDefaultsForV1(base);
+          ensureDefaultsForV1(doc);
+          const overlay = computeOverlayDiff(base, doc) || {};
+          const presets = loadUserPresets();
+          const pname = String(parsed?.meta?.title || parsed?.meta?.name || parsed?.title || f.name || "Imported Preset").replace(/\.json$/i,"").trim();
+          const record = { name: pname, overlay, saved_at: new Date().toISOString(), schema_version: APP_VERSION };
+          const i = presets.findIndex(p=>p.name===pname);
+          if (i>=0) presets[i]=record; else presets.push(record);
+          saveUserPresets(presets);
+          renderPresetManager();
+          populatePresets();
+          toast("Imported preset", "ok", pname);
+        }catch(e){
+          console.error(e);
+          __PF_DIAG.add("importTemplateOrPresetFromPicker", e);
+          toast("Import failed", "err", "Invalid JSON");
+        }
+      };
+      fi.click();
+    }
+
     function exportJSONFile(){
   const { json } = buildCanonicalDocForExport();
   const blob = new Blob([json], {type:"application/json"});
@@ -4395,8 +4480,7 @@ if (parsedJson){
             currentTemplateName = mapped.template;
             $("templateSelect").value = mapped.template;
             $("templateDesc").textContent = TEMPLATE_INFO[mapped.template] || "";
-            refreshStep4Visibility();
-          }
+            }
           toast("Imported external JSON", "ok", mapped.format || "External");
         }else{
           toast("Import JSON failed", "err", "Unsupported JSON format");
@@ -4411,8 +4495,7 @@ if (parsedJson){
         baseData = deepClone(TEMPLATE_BASES[detected]);
         $("templateSelect").value = detected;
         $("templateDesc").textContent = TEMPLATE_INFO[detected] || "";
-        refreshStep4Visibility();
-      }
+        }
 
       // Quarantine unknown fields against detected template schema
       const schemaPaths = SCHEMA_PATHS_BY_TEMPLATE[currentTemplateName] || ALL_SCHEMA_PATHS;
@@ -4435,7 +4518,7 @@ if (parsedJson){
         $("refSwitch").setAttribute("aria-checked", on ? "true" : "false");
       }
 
-      renderStep2(); renderStep3(); renderStep4();
+      renderStep2(); if ($("card3")) renderStep3(); if ($("card4")) renderStep4();
       refreshOutput();
       toast("Imported JSON", "ok", currentTemplateName);
 
@@ -4956,8 +5039,7 @@ window.PF_TESTS.run = function(){
             $("refSwitch").setAttribute("aria-checked", on ? "true" : "false");
           }
 
-          refreshStep4Visibility();
-          renderStep2(); renderStep3(); renderStep4();
+          renderStep2(); if ($("card3")) renderStep3(); if ($("card4")) renderStep4();
           refreshOutput();
 
           if (bundle.state?.step_open) setStepOpenState(bundle.state.step_open);
@@ -4978,14 +5060,14 @@ window.PF_TESTS.run = function(){
     function resetToBase(){
       currentData = deepClone(TEMPLATE_BASES[currentTemplateName]);
       baseData = deepClone(currentData);
-      renderStep2(); renderStep3(); renderStep4();
+      renderStep2(); if ($("card3")) renderStep3(); if ($("card4")) renderStep4();
       refreshOutput();
       toast("Reset to template base", "ok", "Reset");
       saveState();
     }
     function resetEdits(){
       currentData = deepClone(baseData);
-      renderStep2(); renderStep3(); renderStep4();
+      renderStep2(); if ($("card3")) renderStep3(); if ($("card4")) renderStep4();
       refreshOutput();
       toast("Reset edits", "ok", "Reset");
       saveState();
@@ -5026,8 +5108,7 @@ window.PF_TESTS.run = function(){
       $("chatNameInput").value = "";
       $("purposeInput").value = "";
 
-      refreshStep4Visibility();
-      renderStep2(); renderStep3(); renderStep4();
+      renderStep2(); if ($("card3")) renderStep3(); if ($("card4")) renderStep4();
       refreshOutput();
 
       setStepOpenState({ card0:false, card1:true, card2:false, card3:false, card4:false, cardOut:false });
@@ -5200,8 +5281,7 @@ window.PF_TESTS.run = function(){
           const hasOpt = [...$("presetSelect").options].some(o=>o.value===pv);
           $("presetSelect").value = hasOpt ? pv : "builtin:— None —";
         }
-        refreshStep4Visibility();
-        renderStep2(); renderStep3(); renderStep4();
+        renderStep2(); if ($("card3")) renderStep3(); if ($("card4")) renderStep4();
         refreshOutput();
 
         if (s.step_open) setStepOpenState(s.step_open);
@@ -5263,8 +5343,7 @@ window.PF_TESTS.run = function(){
 
       const restored = restoreState();
       if (!restored){
-        refreshStep4Visibility();
-        renderStep2(); renderStep3(); renderStep4();
+        renderStep2(); if ($("card3")) renderStep3(); if ($("card4")) renderStep4();
         refreshOutput();
         setStepOpenState({ card0:false, card1:true, card2:false, card3:false, card4:false, cardOut:false });
       }
