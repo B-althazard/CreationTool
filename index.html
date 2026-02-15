@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>PromptForge RIS v1.1.2 (Single-file)</title>
+  <title>PromptForge RIS v1.1.5 (Single-file)</title>
   <style>
 
     :root{
@@ -329,7 +329,7 @@
   <header>
     <div class="headrow">
       <div class="titlewrap">
-        <h1>PromptForge RIS v1.1.2 (Offline)</h1>
+        <h1>PromptForge RIS v1.1.5 (Offline)</h1>
         <div class="subtitle">PromptForge, Regenerative Image System • Brave/Firefox compatible</div>
       </div>
       <span id="diagBadgeHost" class="pill small" style="display:none;margin-right:8px;align-items:center;gap:6px"></span>
@@ -789,7 +789,7 @@
 
   <script>
     /* =========================================================
-      PromptForge RIS v1.1.2 (Single-file)
+      PromptForge RIS v1.1.5 (Single-file)
       USER_VISIBLE_CHANGES:
       - Step 0 “Merge & Seed”: Name + Purpose + Prompt + JSON merge + copy + upload
       - Step 0: Inject toggle + Detect template toggle
@@ -804,13 +804,18 @@
     ========================================================= */
 
     const APP_NAME = "PromptForge RIS";
-    const APP_VERSION = "v1.1.2-singlefile";
+    const APP_VERSION = "v1.1.5-singlefile";
 
     const LS_KEY = "promptforge_ris_user_presets_v110";
     const LS_STATE = "promptforge_ris_state_v110";
     const LS_RUNS = "promptforge_ris_runs_v110";
     const LS_LAST_SEEN = "promptforge_ris_last_seen_version";
 const LS_THEME = "promptforge_ris_theme_mode_v110";
+
+    // Global UI state (declared early to avoid TDZ during template initialization)
+    let themeMode = "auto";
+    let lockRunId = false;
+
 /* ---------- Theme (Light/Dark/Auto) ---------- */
 const MQL_DARK = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
 
@@ -917,9 +922,31 @@ function ensureDiagPanel(){
 }
 
 function renderDiagBadge(){
-  // Add a tiny badge into the header if present
+  // Add a tiny badge into the header if present (and make it clickable)
   const host = document.getElementById("diagBadgeHost");
   if (!host) return;
+
+  // Make host act like a button
+  host.setAttribute("role","button");
+  host.tabIndex = 0;
+  host.title = "Open diagnostics";
+
+  // Toggle panel on click / keyboard
+  host.onclick = ()=>{
+    ensureDiagPanel();
+    renderDiagPanel();
+    const p = document.getElementById("diagPanel");
+    if (!p) return;
+    p.style.display = (p.style.display === "none" || !p.style.display) ? "block" : "none";
+  };
+  host.onkeydown = (e)=>{
+    const k = e.key || "";
+    if (k === "Enter" || k === " "){
+      e.preventDefault();
+      host.click();
+    }
+  };
+
   const n = __PF_DIAG.errors.length;
   host.textContent = n ? `⚠ ${n}` : "";
   host.style.display = n ? "inline-flex" : "none";
@@ -1006,6 +1033,28 @@ const deepClone = (o)=>JSON.parse(JSON.stringify(o));
 
     /* ---------- Changelog ---------- */
     const CHANGELOG = [
+{
+  version: "v1.1.5",
+  user_visible_changes: [
+    "Fixed output/export pipeline crash (constraints union hardening).",
+    "Added defensive fallbacks so Generate/Resets/Macros can't abort due to missing helpers."
+  ],
+  technical_notes: [
+    "buildCanonicalDocForExport: constraints union now uses safe constraints object and _uniq fallback."
+  ]
+},
+{
+  version: "v1.1.4",
+  user_visible_changes: [
+    "Fixed fatal startup error that broke all controls (removed early references to themeMode/lockRunId during template initialization).",
+    "Diagnostics badge is now clickable (opens/closes the Diagnostics panel; keyboard accessible).",
+    "Restored templates/presets rendering, dropdowns, toggles, and buttons across the app."
+  ],
+  notes: [
+    "If you ever see the ⚠ badge, tap it to open Diagnostics and copy the stack trace."
+  ]
+},
+
 {
   version: "v1.1.1",
   user_visible_changes: [
@@ -1125,6 +1174,38 @@ const deepClone = (o)=>JSON.parse(JSON.stringify(o));
       if (!Array.isArray(arr)) setByPath(obj, path, []);
       const a2 = getByPath(obj, path);
       if (!a2.includes(item)) a2.push(item);
+    }
+
+    // Remove a value at a dotted path (best-effort; used for meta cleanup)
+    function deleteByPath(obj, path){
+      if (!obj || typeof obj !== "object") return;
+      const parts = String(path||"").split(".").filter(Boolean);
+      if (!parts.length) return;
+      let cur = obj;
+      for (let i=0;i<parts.length-1;i++){
+        if (!cur || typeof cur !== "object") return;
+        cur = cur[parts[i]];
+      }
+      if (cur && typeof cur === "object"){
+        try{ delete cur[parts[parts.length-1]]; }catch(_){}
+      }
+    }
+
+    // Stable unique list helper (trim strings, drop empties)
+    function uniq(arr){
+      const out = [];
+      const seen = new Set();
+      for (const v of (Array.isArray(arr) ? arr : [])){
+        if (v === undefined || v === null) continue;
+        const isStr = (typeof v === "string");
+        const val = isStr ? v.trim() : v;
+        const key = isStr ? val : JSON.stringify(val);
+        if (!key) continue;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(val);
+      }
+      return out;
     }
     const BLOCKED_KEYS = new Set(["__proto__","prototype","constructor"]);
 function isPlainObject(x){ return !!x && typeof x === "object" && !Array.isArray(x); }
@@ -1292,8 +1373,6 @@ function uniqNorm(arr){
       const base = {
         "ChatGPT Optimized": {
           meta: { app_name: APP_NAME,
-          themeMode,
-          lockRunId,
  schema_version: APP_VERSION, engine_target: "chatgpt", template_type: "chatgpt_optimized" },
           prompt_profile: {
             mode: "photoreal",
@@ -2879,9 +2958,6 @@ function clearSweep(){
     let expertUnlocked = false;
     let godUnlocked = false;
 
-    let themeMode = "auto";
-    let lockRunId = false;
-
     let saveAsJson = false;
     let chatName = "";
     let purpose = "";
@@ -3668,15 +3744,32 @@ function buildCanonicalDocForExport(){
 
   // v1: keep aliases in sync at export/compile time (safe union)
   ensureDefaultsForV1(out);
-  const hardU = uniq([...(out.constraints.must_include||[]), ...(out.constraints.hard||[])]);
-  const negU = uniq([...(out.constraints.avoid||[]), ...(out.constraints.negative||[])]);
-  out.constraints.must_include = hardU.slice();
-  out.constraints.hard = hardU.slice();
-  out.constraints.avoid = negU.slice();
-  out.constraints.negative = negU.slice();
 
+  // Harden against missing/invalid constraints (prevents export pipeline abort)
+  const c = (typeof isPlainObject === "function" && isPlainObject(out.constraints)) ? out.constraints : (out.constraints = {});
+  const _uniq = (typeof uniq === "function") ? uniq : (arr => {
+    const outA = [];
+    const seen = new Set();
+    for (const v of (Array.isArray(arr) ? arr : [])){
+      if (v === undefined || v === null) continue;
+      const isStr = (typeof v === "string");
+      const val = isStr ? v.trim() : v;
+      const key = isStr ? val : JSON.stringify(val);
+      if (!key) continue;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      outA.push(val);
+    }
+    return outA;
+  });
 
-  const stripped = stripEmpties(out) || {};
+  const hardU = _uniq([...(c.must_include||[]), ...(c.hard||[])]);
+  const negU  = _uniq([...(c.avoid||[]), ...(c.negative||[])]);
+  c.must_include = hardU.slice();
+  c.hard        = hardU.slice();
+  c.avoid       = negU.slice();
+  c.negative    = negU.slice();
+const stripped = stripEmpties(out) || {};
 
   // compile Prompt Pack + hashes
   const compiled = compilePromptPack(stripped, { chatName, purpose, templateName: currentTemplateName });
