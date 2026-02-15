@@ -804,7 +804,7 @@
     ========================================================= */
 
     const APP_NAME = "PromptForge RIS";
-    const APP_VERSION = "v1.1.5-singlefile";
+    const APP_VERSION = "v1.2.0-singlefile";
 
     const LS_KEY = "promptforge_ris_user_presets_v110";
     const LS_STATE = "promptforge_ris_state_v110";
@@ -1033,6 +1033,17 @@ const deepClone = (o)=>JSON.parse(JSON.stringify(o));
 
     /* ---------- Changelog ---------- */
     const CHANGELOG = [
+{
+  version: "v1.2.0",
+  user_visible_changes: [
+    "Added import for external prompt-description JSON (auto-detect + map into PromptForge editable doc).",
+    "External imports preserve the original JSON under meta._import for audit + debugging."
+  ],
+  technical_notes: [
+    "Introduced canonical internal document model (PF_INTERNAL_V1) as a stable target for cross-schema import mapping.",
+    "Added lightweight self-tests for import mappers (console: window.PF_TESTS.run())."
+  ]
+},
 {
   version: "v1.1.5",
   user_visible_changes: [
@@ -4371,8 +4382,30 @@ if (parsedJson){
 
       inferSchemaRegistry();
 
+      // If this isn't a PromptForge-RIS doc, try best-effort mapping into our canonical editable doc.
+      const schemaId = String(parsed?.meta?.schema_id || "");
+      const isRIS = (schemaId === SCHEMA_ID_V1) || (!!parsed?.meta?.app_name && !!parsed?.prompt_profile);
+      let working = parsed;
+      if (!isRIS){
+        const mapped = mapExternalJsonToRIS(parsed);
+        if (mapped && mapped.doc){
+          working = mapped.doc;
+          // Hint template selection (non-binding; user can change after import)
+          if (mapped.template && TEMPLATE_BASES[mapped.template]){
+            currentTemplateName = mapped.template;
+            $("templateSelect").value = mapped.template;
+            $("templateDesc").textContent = TEMPLATE_INFO[mapped.template] || "";
+            refreshStep4Visibility();
+          }
+          toast("Imported external JSON", "ok", mapped.format || "External");
+        }else{
+          toast("Import JSON failed", "err", "Unsupported JSON format");
+          return;
+        }
+      }
+
       // Template detection (best-effort). If not detected, keep current template.
-      const detected = detectTemplateFromJson(parsed) || currentTemplateName;
+      const detected = detectTemplateFromJson(working) || currentTemplateName;
       if (detected && TEMPLATE_BASES[detected]){
         currentTemplateName = detected;
         baseData = deepClone(TEMPLATE_BASES[detected]);
@@ -4383,10 +4416,10 @@ if (parsedJson){
 
       // Quarantine unknown fields against detected template schema
       const schemaPaths = SCHEMA_PATHS_BY_TEMPLATE[currentTemplateName] || ALL_SCHEMA_PATHS;
-      const quarantine = quarantineUnknownFields(parsed, schemaPaths);
-      const coercions = coerceTypesInPlace(parsed);
+      const quarantine = quarantineUnknownFields(working, schemaPaths);
+      const coercions = coerceTypesInPlace(working);
 
-      currentData = parsed;
+      currentData = working;
       ensureDefaultsForV1(currentData);
       baseData = deepClone(currentData);
       try{ ensureDefaultsForV1(baseData); }catch(_){ }
@@ -4419,6 +4452,304 @@ if (parsedJson){
   };
   fi.click();
 }
+
+/* ---------- Canonical internal schema + external JSON import ---------- */
+
+// Canonical internal schema target for cross-format imports.
+// NOTE: This is a *model*, not a hard validator; we map into existing RIS doc shape
+// so the current UI can edit it without new rendering components.
+const PF_INTERNAL_V1 = {
+  meta: {
+    schema_id: SCHEMA_ID_V1,
+    imported_from: "",
+    imported_at: "",
+    _import: {} // original source JSON (for audit/debug)
+  }
+  // The remaining structure is the PromptForge-RIS editable document shape.
+};
+
+function detectExternalFormat(obj){
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return null;
+  if (obj.image_analysis && typeof obj.image_analysis === "object") return "IMAGE_ANALYSIS";
+  if (obj.category && (obj.subject || obj.pose || obj.setting)) return "CATEGORY_SCHEMA";
+  if (obj.meta && (obj.scene || obj.subject || obj.camera_perspective || obj.lighting)) return "META_SCENE_SCHEMA";
+  // generic “prompt description” schema (subject/pose/setting/camera/lighting)
+  const keys = Object.keys(obj);
+  const hit = ["subject","pose","setting","camera","lighting"].some(k=> keys.includes(k));
+  if (hit) return "GENERIC_PROMPT_SCHEMA";
+  return null;
+}
+
+function asArray(x){
+  if (Array.isArray(x)) return x.filter(v=>v!==null && v!==undefined).map(v=>String(v));
+  if (typeof x === "string") return parseFreeformTokens(x);
+  return [];
+}
+
+function joinClean(parts){
+  return parts
+    .filter(Boolean)
+    .map(s=>String(s).trim())
+    .filter(Boolean)
+    .join("; ");
+}
+
+function mapExternalJsonToRIS(src){
+  const fmt = detectExternalFormat(src);
+  if (!fmt) return null;
+
+  // Start from a stable base so the UI always has expected fields.
+  const doc = deepClone(TEMPLATE_BASES["ChatGPT Optimized"]);
+  ensureDefaultsForV1(doc);
+
+  // Import metadata (non-rendered unless expert)
+  doc.meta = doc.meta || {};
+  doc.meta.imported_from = fmt;
+  doc.meta.imported_at = new Date().toISOString();
+  doc.meta._import = src; // audit trail
+
+  // Shared extracts
+  const neg = asArray(src.negative_prompt || src.negative || src.negatives);
+  if (neg.length){
+    doc.constraints.avoid = neg.slice();
+    doc.constraints.negative = neg.slice();
+    doc.prompt_output.negative_prompt = neg.join(", ");
+  }
+
+  // Aspect ratio + orientation
+  const ar = String(src?.meta?.aspect_ratio || src?.technical_details?.aspect_ratio || src?.camera?.framing || "").trim();
+  if (ar && /\d\s*[:/]\s*\d/.test(ar)){
+    const norm = ar.replace("/",":").replace(/\s+/g,"");
+    doc.output_specs.aspect_ratio = norm;
+    const parts = norm.split(":");
+    if (parts.length === 2 && Number(parts[0]) && Number(parts[1])){
+      doc.composition.orientation = Number(parts[0]) < Number(parts[1]) ? "vertical" : "horizontal";
+    }
+  }
+
+  // Format-specific mapping
+  if (fmt === "CATEGORY_SCHEMA" || fmt === "GENERIC_PROMPT_SCHEMA"){
+    // Subject
+    if (src.subject){
+      if (typeof src.subject.demographics === "string"){
+        // best-effort parse
+        if (/female/i.test(src.subject.demographics)) doc.subject.gender = "female";
+        if (/male/i.test(src.subject.demographics)) doc.subject.gender = "male";
+        const age = src.subject.demographics.match(/\b(\d{2})\b/);
+        if (age) doc.subject.age = age[1];
+        doc.subject.ethnicity = src.subject.demographics;
+      }
+      if (src.subject.hair){
+        doc.subject.hair.color = src.subject.hair.color || doc.subject.hair.color;
+        doc.subject.hair.style = src.subject.hair.style || doc.subject.hair.style;
+        doc.subject.hair.details = joinClean([src.subject.hair.texture, src.subject.hair.movement, src.subject.hair.details]);
+      }
+      if (src.subject.face){
+        doc.subject.face.shape = src.subject.face.shape || doc.subject.face.shape;
+        doc.subject.face.features = joinClean([
+          src.subject.face.eyes,
+          src.subject.face.nose,
+          src.subject.face.lips,
+          src.subject.face.skin_details,
+          src.subject.face.micro_details
+        ]) || doc.subject.face.features;
+        // eyes color hint
+        if (typeof src.subject.face.eyes === "string"){
+          const m = src.subject.face.eyes.match(/\b(blue|green|brown|hazel|grey|gray)\b/i);
+          if (m) doc.subject.eyes.color = m[1].toLowerCase();
+        }
+      }
+      if (src.subject.clothing){
+        doc.clothing.top = src.subject.clothing.top || doc.clothing.top;
+        doc.clothing.fit = src.subject.clothing.fit || doc.clothing.fit;
+        doc.clothing.notes = joinClean([src.subject.clothing.texture, src.subject.clothing.details, src.subject.clothing.materials]);
+      }
+      if (src.subject.accessories?.jewelry){
+        const items = asArray(src.subject.accessories.jewelry);
+        if (items.length) doc.accessories.items = items;
+      }
+    }
+
+    // Pose -> composition framing/mood
+    if (src.pose){
+      doc.composition.framing = joinClean([src.pose.orientation, src.pose.type, src.pose.posture, src.pose.limbs, src.pose.head_position]) || doc.composition.framing;
+      doc.mood = joinClean([src.mood_and_expression?.tone, src.mood_and_expression?.expression, src.mood_and_expression?.atmosphere]) || doc.mood;
+    }
+
+    // Setting -> background
+    if (src.setting){
+      doc.background.location_type = src.setting.environment || doc.background.location_type;
+      const bg = Array.isArray(src.setting.background_elements) ? src.setting.background_elements.join(", ") : src.setting.background_elements;
+      doc.background.scene = joinClean([src.setting.environment, bg, src.setting.depth]) || doc.background.scene;
+    }
+
+    // Camera
+    if (src.camera){
+      doc.camera.photo_style = src.camera.shot_type || doc.camera.photo_style;
+      doc.camera.focal_length = src.camera.focal_length || src.camera.focal_length_equivalent || doc.camera.focal_length;
+      doc.camera.depth_of_field = src.camera.focus || src.camera.perspective || doc.camera.depth_of_field;
+      doc.composition.shot_type = src.camera.shot_type || doc.composition.shot_type;
+      doc.composition.camera_distance = src.camera.framing && /close/i.test(src.camera.framing) ? "close" : doc.composition.camera_distance;
+    }
+
+    // Lighting
+    if (src.lighting){
+      doc.lighting.type = src.lighting.source || src.lighting.type || doc.lighting.type;
+      doc.lighting.direction = src.lighting.direction || doc.lighting.direction;
+      doc.lighting.quality = src.lighting.quality || doc.lighting.quality;
+      doc.lighting.notes = joinClean([src.lighting.highlights, src.lighting.shadows, src.lighting.effect]);
+    }
+
+    // Style
+    if (src.style_and_realism){
+      doc.style.genre = src.style_and_realism.style || doc.style.genre;
+      doc.style.realism_strength = src.style_and_realism.fidelity || doc.style.realism_strength;
+    }
+    if (src.colors_and_tone){
+      doc.style.color_grading = src.colors_and_tone.white_balance || doc.style.color_grading;
+      doc.style.contrast = src.colors_and_tone.contrast || doc.style.contrast;
+    }
+
+    // Constraints
+    if (src.constraints && typeof src.constraints === "object"){
+      const hard = [];
+      Object.keys(src.constraints).forEach(k=>{
+        if (src.constraints[k] === true) hard.push(k.replace(/_/g," "));
+      });
+      if (hard.length){
+        doc.constraints.must_include = [...new Set([...(doc.constraints.must_include||[]), ...hard])];
+        doc.constraints.hard = doc.constraints.must_include.slice();
+      }
+    }
+  }
+
+  if (fmt === "META_SCENE_SCHEMA"){
+    // meta + scene
+    doc.prompt_profile.output_goal = src?.meta?.style || doc.prompt_profile.output_goal;
+    doc.output_specs.aspect_ratio = src?.meta?.aspect_ratio || doc.output_specs.aspect_ratio;
+    doc.camera.photo_style = src?.meta?.camera || doc.camera.photo_style;
+    doc.camera.focal_length = src?.meta?.lens || doc.camera.focal_length;
+    doc.camera.exposure = src?.meta?.iso || doc.camera.exposure;
+
+    if (src.scene){
+      doc.background.location_type = src.scene.location || doc.background.location_type;
+      doc.background.scene = joinClean([
+        src.scene.location,
+        Array.isArray(src.scene.environment) ? src.scene.environment.join(", ") : src.scene.environment,
+        src.scene.time,
+        src.scene.atmosphere
+      ]) || doc.background.scene;
+      doc.mood = joinClean([src.scene.atmosphere]) || doc.mood;
+    }
+
+    if (src.camera_perspective){
+      doc.composition.framing = joinClean([src.camera_perspective.pov, src.camera_perspective.angle, src.camera_perspective.framing]);
+      doc.camera.depth_of_field = src.camera_perspective.focus || doc.camera.depth_of_field;
+    }
+
+    if (src.lighting){
+      doc.lighting.type = src.lighting.type || doc.lighting.type;
+      doc.lighting.notes = joinClean([src.lighting.key_light, src.lighting.fill_light, src.lighting.shadows, src.lighting.highlights]);
+    }
+
+    if (src.subject){
+      const d = src.subject.demographics || {};
+      doc.subject.gender = d.gender || doc.subject.gender;
+      doc.subject.age = d.age || doc.subject.age;
+      doc.subject.ethnicity = d.ethnicity || doc.subject.ethnicity;
+
+      const f = src.subject.face || {};
+      doc.subject.face.features = joinClean([f.structure, f.skin_texture, f.lips, f.eyes, f.brows]) || doc.subject.face.features;
+      // eyes color hint
+      if (typeof f.eyes === "string"){
+        const m = f.eyes.match(/\b(blue|green|brown|hazel|grey|gray)\b/i);
+        if (m) doc.subject.eyes.color = m[1].toLowerCase();
+      }
+      const h = src.subject.hair || {};
+      doc.subject.hair.color = h.color || doc.subject.hair.color;
+      doc.subject.hair.style = h.style || doc.subject.hair.style;
+      doc.subject.hair.details = joinClean([h.texture]);
+      doc.mood = joinClean([src.subject.expression, doc.mood]);
+    }
+
+    if (src.outfit){
+      doc.clothing.top = src.outfit.top?.type || doc.clothing.top;
+      doc.clothing.notes = joinClean([src.outfit.top?.details, src.outfit.top?.color, src.outfit.headwear?.item, src.outfit.headwear?.color]);
+    }
+  }
+
+  if (fmt === "IMAGE_ANALYSIS"){
+    // This source is “analysis”, so map into descriptive fields.
+    const env = src.image_analysis.general_environment || {};
+    const tech = src.image_analysis.technical_details || {};
+    const light = src.image_analysis.lighting_conditions || {};
+    doc.background.location_type = env.location_description || env.type || doc.background.location_type;
+    doc.background.scene = joinClean([env.location_description, env.details, env.atmosphere]) || doc.background.scene;
+    doc.composition.framing = joinClean([tech.camera_angle, tech.framing, tech.lens_effect]) || doc.composition.framing;
+    doc.lighting.type = light.type || doc.lighting.type;
+    doc.lighting.notes = joinClean([light.source, light.effect]);
+
+    const person = Array.isArray(src.image_analysis.people) ? src.image_analysis.people[0] : null;
+    if (person){
+      doc.subject.gender = /woman|female/i.test(person.identity||"") ? "female" : doc.subject.gender;
+      const hair = person.head_area?.hair || {};
+      doc.subject.hair.color = hair.color || doc.subject.hair.color;
+      doc.subject.hair.style = hair.style || doc.subject.hair.style;
+      doc.subject.face.features = joinClean([
+        person.head_area?.general_structure,
+        person.head_area?.eye_area,
+        person.head_area?.nose_area,
+        person.head_area?.mouth_area
+      ]) || doc.subject.face.features;
+      doc.clothing.dress = person.clothing?.general_description || doc.clothing.dress;
+      doc.clothing.notes = joinClean([
+        person.clothing?.upper_part?.type,
+        person.clothing?.upper_part?.color,
+        person.clothing?.lower_part?.type,
+        person.clothing?.lower_part?.color
+      ]);
+      doc.composition.shot_type = tech.framing || doc.composition.shot_type;
+      doc.mood = joinClean([env.atmosphere]) || doc.mood;
+    }
+  }
+
+  // Canonical v1 alias sync (keep both for compatibility)
+  try { ensureDefaultsForV1(doc); } catch(_){ }
+
+  // Template suggestion (heuristic)
+  let template = null;
+  const ratio = String(doc.output_specs?.aspect_ratio || "");
+  if (ratio === "9:16") template = "Single Image";
+  if (ratio === "4:5") template = "ChatGPT Optimized";
+
+  return { doc, template, format: fmt };
+}
+
+/* ---------- Minimal self-tests (no external harness) ---------- */
+window.PF_TESTS = window.PF_TESTS || {};
+window.PF_TESTS.run = function(){
+  const results = [];
+  function assert(name, cond){
+    if (!cond) throw new Error(`Test failed: ${name}`);
+    results.push(name);
+  }
+
+  // Smoke: category schema
+  const sample = {
+    category: "BATHROOM_SELFIE_FLASH",
+    subject: { demographics: "Adult woman, 21-27" },
+    camera: { shot_type: "Selfie-style portrait", focal_length_equivalent: "24-28mm" },
+    lighting: { source: "Phone flash" },
+    negative_prompt: ["nudity","watermark"]
+  };
+  const mapped = mapExternalJsonToRIS(sample);
+  assert("mapped exists", !!mapped && !!mapped.doc);
+  assert("negative propagated", mapped.doc.prompt_output.negative_prompt.includes("nudity"));
+  assert("camera focal length", String(mapped.doc.camera.focal_length).includes("24"));
+  assert("gender inferred", mapped.doc.subject.gender === "female");
+
+  return { ok: true, count: results.length, tests: results };
+};
 
     function exportBundle(){
       // Bundle format: promptforge_ris_bundle@1
