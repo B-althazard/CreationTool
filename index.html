@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>PromptForge RIS v1.2.1 (Single-file)</title>
+  <title>PromptForge RIS v1.2.2 (Single-file)</title>
   <style>
 
     :root{
@@ -41,6 +41,29 @@
       margin: -10px -12px 12px;
       display:flex; justify-content:center; align-items:center;
     }
+    /* ----- Header (v1.2.2) ----- */
+    header{ position:sticky; top:0; z-index:50; background:var(--bg); padding:10px 12px; }
+    .headerCard{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:10px;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }
+    .headerCard .iconBtn{ width: var(--tap); height: var(--tap); display:inline-flex; align-items:center; justify-content:center; }
+    .appTitle{
+      flex:1;
+      text-align:center;
+      margin:0;
+      font-size:16px;
+      line-height:1.2;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
     .headrow{display:flex; align-items:center; justify-content:center; width:100%;}
     .titlewrap{ text-align:center; max-width: min(92vw, 720px); }
     h1{ font-size: 18px; margin:0; line-height:1.15; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
@@ -327,14 +350,10 @@
   <div class="toastHost" id="toastHost" aria-live="polite"></div>
 
   <header>
-    <div class="headrow">
+    <div class="headerCard">
       <button class="btn small iconBtn" id="hamburgerBtn" title="Menu" aria-label="Menu">☰</button>
-      <div class="titlewrap">
-        <h1 id="appTitle"></h1>
-        <div class="subtitle">PromptForge, Regenerative Image System • Brave/Firefox compatible</div>
-      </div>
-      <span id="diagBadgeHost" class="pill small" style="display:none;margin-right:8px;align-items:center;gap:6px"></span>
-      <button class="btn small iconBtn" id="themeToggleBtn" title="Toggle theme">☀</button>
+      <h1 id="appTitle" class="appTitle"></h1>
+      <button class="btn small iconBtn" id="themeToggleBtn" title="Toggle theme" aria-label="Toggle theme">☀</button>
     </div>
   </header>
 
@@ -689,7 +708,7 @@
     ========================================================= */
 
     const APP_NAME = "PromptForge RIS";
-    const APP_VERSION = "v1.2.1-singlefile";
+    const APP_VERSION = "v1.2.2-singlefile";
 
     const LS_KEY = "promptforge_ris_user_presets_v110";
     const LS_STATE = "promptforge_ris_state_v110";
@@ -741,7 +760,7 @@ if (MQL_DARK && MQL_DARK.addEventListener){
     if (normalizeThemeMode(themeMode) === "auto"){
       applyTheme("auto", {persist:false, quiet:true});
 
-      if ($("appTitle")) $("appTitle").textContent = `${APP_NAME} ${APP_VERSION} (Offline)`;
+      if ($("appTitle")) $("appTitle").textContent = `${APP_NAME}`;
     }
   });
 }
@@ -917,6 +936,17 @@ $("closeDrawer").onclick=closeDrawer;
 
     /* ---------- Changelog ---------- */
     const CHANGELOG = [
+{
+  version: "v1.2.2",
+  user_visible_changes: [
+    "Redesigned header into a compact card layout with app name only.",
+    "Moved hamburger menu to the opposite side for easier reach; kept theme toggle on the other side.",
+    "General UI/UX cleanup (spacing, tap targets, header layout stability)."
+  ],
+  technical_notes: [
+    "Header controls grouped into left/right zones to prevent wrapping on small screens."
+  ]
+},
 {
   'version': 'v1.2.1',
   'user_visible_changes': [
@@ -3926,9 +3956,13 @@ $("saveFileBtn").onclick=saveFileWithLogic;
         const prompt = String(built.prompt || built.text || "").trim();
         const json = String(built.json || "").trim();
         const parts = [];
-        if (prompt) parts.push("PROMPT" + prompt);
-        if (json) parts.push("JSON" + json);
-        const payload = parts.join("");
+        if (prompt) parts.push("PROMPT
+" + prompt);
+        if (json) parts.push("JSON
+" + json);
+        const payload = parts.join("
+
+");
         if (!payload.trim()){ toast("Nothing to copy", "err", "Copy"); return; }
         const ok = await copyToClipboard(payload);
         ok ? toast("Copied prompt + JSON", "ok", "Copy") : toast("Copy failed", "err", "Clipboard");
