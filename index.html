@@ -3926,13 +3926,9 @@ $("saveFileBtn").onclick=saveFileWithLogic;
         const prompt = String(built.prompt || built.text || "").trim();
         const json = String(built.json || "").trim();
         const parts = [];
-        if (prompt) parts.push("PROMPT
-" + prompt);
-        if (json) parts.push("JSON
-" + json);
-        const payload = parts.join("
-
-");
+        if (prompt) parts.push("PROMPT" + prompt);
+        if (json) parts.push("JSON" + json);
+        const payload = parts.join("");
         if (!payload.trim()){ toast("Nothing to copy", "err", "Copy"); return; }
         const ok = await copyToClipboard(payload);
         ok ? toast("Copied prompt + JSON", "ok", "Copy") : toast("Copy failed", "err", "Clipboard");
